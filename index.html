@@ -3,72 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>프로젝트 네비게이션</title>
+  <title>Project Portal</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      line-height: 1.6;
-      color: #24292e;
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --accent: #4f46e5;
+      --border: #e2e8f0;
     }
-    h1 {
-      border-bottom: 2px solid #eaecef;
-      padding-bottom: 10px;
-      font-size: 1.8rem;
-    }
-    .project-section {
-      margin-top: 24px;
-      background: #f6f8fa;
-      border: 1px solid #e1e4e8;
-      border-radius: 6px;
-      padding: 16px;
-    }
-    h2 {
-      margin-top: 0;
-      font-size: 1.2rem;
-      color: #0366d6;
-    }
-    ul {
+
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding-left: 20px;
+      padding: 0;
     }
-    li {
-      margin-bottom: 8px;
-    }
-    li:last-child {
-      margin-bottom: 0;
-    }
-    a {
-      color: #0969da;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
 
-  <h1>GitHub Pages 프로젝트 목록</h1>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
 
-  <div class="project-section">
-    <h2>Project 1</h2>
-    <ul>
-      <li><a href="./project1/one.html">one.html 바로가기</a></li>
-      <li><a href="./project1/two.html">two.html 바로가기</a></li>
-    </ul>
-  </div>
+    .container {
+      width: 100%;
+      max-width: 540px;
+    }
 
-  <div class="project-section">
-    <h2>Project 2</h2>
-    <ul>
-      <li><a href="./project2/three.html">three.html 바로가기</a></li>
-      <li><a href="./project2/four.html">four.html 바로가기</a></li>
-    </ul>
-  </div>
+    header {
+      margin-bottom: 32px;
+      text-align: center;
+    }
 
-</body>
-</html>
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
