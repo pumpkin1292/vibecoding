@@ -47,3 +47,109 @@
       letter-spacing: -0.02em;
       margin-bottom: 6px;
     }
+
+    header p {
+      color: var(--text-sub);
+      font-size: 0.95rem;
+    }
+
+    .project-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    .project-card h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      background-color: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+
+    .nav-btn .arrow {
+      font-size: 1rem;
+      transition: transform 0.2s ease;
+    }
+
+    .nav-btn:hover .arrow {
+      transform: translateX(4px);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Projects Overview</h1>
+      <p>이동할 페이지를 선택해 주세요.</p>
+    </header>
+
+    <div class="project-card">
+      <h2>Project 1</h2>
+      <div class="button-grid">
+        <a href="./project1/one.html" class="nav-btn">
+          <span>one</span>
+          <span class="arrow">&rarr;</span>
+        </a>
+        <a href="./project1/two.html" class="nav-btn">
+          <span>two</span>
+          <span class="arrow">&rarr;</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <h2>Project 2</h2>
+      <div class="button-grid">
+        <a href="./project2/three.html" class="nav-btn">
+          <span>three</span>
+          <span class="arrow">&rarr;</span>
+        </a>
+        <a href="./project2/four.html" class="nav-btn">
+          <span>four</span>
+          <span class="arrow">&rarr;</span>
+        </a>
+        <a href="./project2/admin.html" class="nav-btn">
+          <span>admin</span>
+          <span class="arrow">&rarr;</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
