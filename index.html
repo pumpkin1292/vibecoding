@@ -1,1 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>공 튀기기 프로그램</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Pretendard', sans-serif;
+      user-select: none;
+      background-color: #1e1e2e;
+    }
+    
+    /* Custom Slider Styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #313244;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #89b4fa;
+      margin-top: -5px;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(137, 180, 250, 0.5);
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between items-center p-3 md:p-6">
 
+  <!-- Main Container -->
+  <div class="max-w-4xl w-full flex flex-col items-center gap-4 my-auto">
+    
+    <!-- Header -->
+    <header class="text-center space-y-1">
+      <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-100 flex items-center justify-center gap-3">
+        <i class="fa-solid fa-circle-dot text-sky-400"></i>
+        공 튀기기 시뮬레이터
+      </h1>
+      <p class="text-xs md:text-sm text-slate-400">좌표 격자망, 드래그 배치 & 발사 벡터 설정, 2차원 완전 탄성 충돌 (운동량 보존)</p>
+    </header>
+
+    <!-- Mode Selector Tabs -->
+    <div class="flex items-center gap-2 p-1.5 bg-[#181825] border border-[#313244] rounded-xl w-full max-w-3xl">
+      <button id="tabFreeMode" class="flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-sky-600 text-white shadow-md">
+        <i class="fa-solid fa-dice"></i>
+        <span>🎲 자유 시뮬레이션 모드</span>
+      </button>
+      <button id="tabSetupMode" class="flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-[#313244] text-slate-300 hover:text-white">
+        <i class="fa-solid fa-ruler-combined"></i>
+        <span>📐 좌표격자 & 수동 설정 모드</span>
+      </button>
+    </div>
+
+    <!-- Canvas Card Area -->
+    <div class="relative w-full max-w-3xl bg-[#11111b] border-2 border-[#313244] rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center min-h-[380px] md:min-h-[440px]">
+      
+      <!-- Canvas Element -->
+      <canvas id="canvas" class="w-full h-full block cursor-pointer"></canvas>
+
+      <!-- Floating Stats & Focus Overlay -->
+      <div class="absolute top-3 left-3 right-3 flex flex-wrap justify-between items-center gap-2 pointer-events-none">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="bg-[#181825]/90 backdrop-blur border border-[#313244] px-3 py-1 rounded-full text-xs text-slate-300 font-mono shadow-lg">
+            <span class="text-slate-400">충돌:</span>
+            <span id="bounceCountText" class="font-bold text-sky-400">0</span>
+          </div>
+          <div class="bg-[#181825]/90 backdrop-blur border border-[#313244] px-3 py-1 rounded-full text-xs text-slate-300 font-mono shadow-lg">
+            <span class="text-slate-400">전체 공:</span>
+            <span id="ballCountText" class="font-bold text-indigo-400">1개</span>
+          </div>
+        </div>
+        
+        <!-- Focused Selected Ball Info Badge -->
+        <div class="bg-[#181825]/90 backdrop-blur border border-sky-500/40 px-3 py-1 rounded-full text-xs font-mono shadow-lg flex items-center gap-2">
+          <i class="fa-solid fa-bullseye text-sky-400"></i>
+          <span id="focusStatusBadge" class="text-sky-300 font-semibold">선택된 공: #1</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Control Panel -->
+    <div class="w-full max-w-3xl flex flex-col gap-4 bg-[#181825] border border-[#313244] p-4 rounded-xl shadow-lg">
+      
+      <!-- SECTION A: Setup Mode Specific Bar (Shown in Setup Tab) -->
+      <div id="setupControlsGroup" class="hidden flex flex-col gap-3 pb-3 border-b border-[#313244]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
+            <i class="fa-solid fa-hand-pointer"></i>
+            <span>수동 드래그 설정 (공 위치 및 속도 벡터 화살표 드래그)</span>
+          </div>
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input type="checkbox" id="toggleGridCheckbox" checked class="rounded border-[#313244] text-sky-500 focus:ring-0">
+            <span>좌표격자 표시</span>
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="addStoppedBallBtn" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-pause text-amber-300"></i>
+            <span>정지 공 생성 (드래그 배치용)</span>
+          </button>
+          
+          <button id="launchBallBtn" class="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rocket"></i>
+            <span>선택 공 발사 / 일시정지</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION B: Focused / Selected Ball Controls -->
+      <div class="flex flex-col gap-2 pb-3 border-b border-[#313244]">
+        <div class="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wider">
+          <i class="fa-solid fa-crosshairs"></i>
+          <span>🎯 선택된 공 개별 조작 (초점 제어)</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Focused Ball: Reverse Direction -->
+          <button id="focusReverseBtn" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>방향 전환</span>
+          </button>
+
+          <!-- Focused Ball: Freeze / Resume -->
+          <button id="focusStopBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
+            <i id="focusStopIcon" class="fa-solid fa-circle-stop"></i>
+            <span id="focusStopText">정지 / 재개</span>
+          </button>
+
+          <!-- Focused Ball: Remove -->
+          <button id="focusDeleteBtn" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>제거</span>
+          </button>
+        </div>
+
+        <!-- Focused Ball Individual Speed Slider -->
+        <div class="flex items-center justify-between gap-4 pt-1">
+          <div class="flex items-center gap-2 text-xs text-sky-300 font-medium">
+            <i class="fa-solid fa-gauge text-sky-400"></i>
+            <span>선택 공 속도</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="range" id="focusSpeedSlider" min="0" max="25" value="5" step="1" class="w-32 md:w-44">
+            <span id="focusSpeedValBadge" class="text-xs font-mono font-bold text-sky-400 w-20 text-right">0.0 cm/s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION C: Global Controls Row -->
+      <div class="flex flex-wrap items-center justify-between gap-2.5">
+        
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Add Ball Button -->
+          <button id="addBallBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i>
+            <span>공 추가</span>
+          </button>
+
+          <!-- Color Change Button -->
+          <button id="colorBtn" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-palette"></i>
+            <span>전체 색상 변경</span>
+          </button>
+
+          <!-- Reverse All Direction Button -->
+          <button id="reverseAllBtn" class="px-3 py-1.5 rounded-lg bg-[#313244] hover:bg-[#45475a] text-slate-200 font-semibold text-xs transition active:scale-95 flex items-center gap-1.5">
+            <i class="fa-solid fa-shuffle"></i>
+            <span>전체 방향 반전</span>
+          </button>
+        </div>
+
+        <!-- Global Simulation Controls -->
+        <div class="flex items-center gap-2">
+          <button id="playPauseBtn" class="px-3 py-1.5 rounded-lg bg-[#313244] hover:bg-[#45475a] text-slate-200 text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
+            <i id="playPauseIcon" class="fa-solid fa-pause"></i>
+            <span id="playPauseText">일시정지</span>
+          </button>
+          <button id="resetBtn" class="px-3 py-1.5 rounded-lg bg-[#313244] hover:bg-[#45475a] text-slate-200 text-xs font-semibold transition active:scale-95 flex items-center gap-1.5" title="초기화">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>초기화</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Speed Slider -->
+      <div class="flex items-center justify-between gap-4 pt-2 border-t border-[#313244]">
+        <div class="flex items-center gap-2 text-xs text-slate-300 font-medium">
+          <i class="fa-solid fa-gauge-high text-amber-400"></i>
+          <span>전체 이동 속도 조절</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <input type="range" id="speedSlider" min="1" max="25" value="5" step="1" class="w-36 md:w-48">
+          <span id="speedValBadge" class="text-xs font-mono font-bold text-emerald-400 w-24 text-right">7.9 cm/s</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- User Guide Hint -->
+    <p id="guideHint" class="text-xs text-slate-400 flex items-center justify-center gap-1.5 text-center">
+      <i class="fa-solid fa-hand-pointer text-sky-400"></i>
+      공을 클릭하여 선택하거나 빈 공간을 클릭하여 공을 추가할 수 있습니다.
+    </p>
+
+  </div>
+
+  <!-- JavaScript Simulation Logic -->
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Element References - Tabs
+    const tabFreeMode = document.getElementById('tabFreeMode');
+    const tabSetupMode = document.getElementById('tabSetupMode');
+    const setupControlsGroup = document.getElementById('setupControlsGroup');
+    const toggleGridCheckbox = document.getElementById('toggleGridCheckbox');
+    const addStoppedBallBtn = document.getElementById('addStoppedBallBtn');
+    const launchBallBtn = document.getElementById('launchBallBtn');
+    const guideHint = document.getElementById('guideHint');
+
+    // UI Element References - Controls
+    const focusReverseBtn = document.getElementById('focusReverseBtn');
+    const focusStopBtn = document.getElementById('focusStopBtn');
+    const focusStopIcon = document.getElementById('focusStopIcon');
+    const focusStopText = document.getElementById('focusStopText');
+    const focusDeleteBtn = document.getElementById('focusDeleteBtn');
+    const focusSpeedSlider = document.getElementById('focusSpeedSlider');
+    const focusSpeedValBadge = document.getElementById('focusSpeedValBadge');
+
+    const addBallBtn = document.getElementById('addBallBtn');
+    const colorBtn = document.getElementById('colorBtn');
+    const reverseAllBtn = document.getElementById('reverseAllBtn');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    const playPauseText = document.getElementById('playPauseText');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValBadge = document.getElementById('speedValBadge');
+    const bounceCountText = document.getElementById('bounceCountText');
+    const ballCountText = document.getElementById('ballCountText');
+    const focusStatusBadge = document.getElementById('focusStatusBadge');
+
+    // State Variables
+    let currentTab = 'free'; // 'free' or 'setup'
+    let showGrid = true;
+    let isRunning = true;
+    let bounceCount = 0;
+    let ballIdCounter = 1;
+    let selectedBallId = null;
+    const maxTrailLength = 14;
+
+    // Dragging state for setup mode
+    let isDraggingBall = false;
+    let isDraggingVector = false;
+    let draggedBall = null;
+
+    // Speed unit conversion factor (Standard 96 DPI: 1 px ≈ 0.0264583 cm)
+    const PX_TO_CM_PER_SEC = 60 * 0.0264583;
+    const VECTOR_SCALE = 12; // Visual multiplier for velocity vector arrow
+
+    // Array holding all active ball objects
+    let balls = [];
+
+    // Helper: Create single ball object
+    function createBall(x, y, radius = 16, isStopped = false, hue = null) {
+      const currentSpeed = parseFloat(speedSlider.value);
+      const angle = Math.random() * Math.PI * 2;
+      const initialDx = isStopped ? 0 : Math.cos(angle) * currentSpeed;
+      const initialDy = isStopped ? 0 : Math.sin(angle) * currentSpeed;
+      
+      return {
+        id: ballIdCounter++,
+        x: x,
+        y: y,
+        radius: radius,
+        dx: initialDx,
+        dy: initialDy,
+        isStopped: isStopped,
+        savedDx: Math.cos(angle) * currentSpeed,
+        savedDy: Math.sin(angle) * currentSpeed,
+        hue: hue !== null ? hue : Math.floor(Math.random() * 360),
+        trail: []
+      };
+    }
+
+    // Canvas Resize Handling
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const displayWidth = rect.width;
+      const displayHeight = rect.height;
+
+      // Keep balls within canvas visible bounds
+      balls.forEach(ball => {
+        if (ball.x + ball.radius > displayWidth) ball.x = displayWidth - ball.radius;
+        if (ball.x - ball.radius < 0) ball.x = ball.radius;
+        if (ball.y + ball.radius > displayHeight) ball.y = displayHeight - ball.radius;
+        if (ball.y - ball.radius < 0) ball.y = ball.radius;
+      });
+    }
+
+    // Update Speed Badge UI Display
+    function updateSpeedDisplay() {
+      const speedPx = parseFloat(speedSlider.value);
+      const speedCmSec = (speedPx * PX_TO_CM_PER_SEC).toFixed(1);
+      speedValBadge.textContent = `${speedCmSec} cm/s`;
+    }
+
+    // Update Selected Ball Info Display
+    function updateFocusStatusUI() {
+      const focusedBall = balls.find(b => b.id === selectedBallId);
+      if (!focusedBall) {
+        focusStatusBadge.textContent = "선택된 공: 없음";
+        focusStatusBadge.className = "text-slate-400 font-semibold";
+        focusStopText.textContent = "정지 / 재개";
+        focusSpeedSlider.disabled = true;
+        focusSpeedValBadge.textContent = "0.0 cm/s";
+        return;
+      }
+
+      focusSpeedSlider.disabled = false;
+      const currentSpeedPx = focusedBall.isStopped
+        ? Math.hypot(focusedBall.savedDx, focusedBall.savedDy)
+        : Math.hypot(focusedBall.dx, focusedBall.dy);
+      
+      focusSpeedSlider.value = Math.round(currentSpeedPx);
+      const speedCmSec = (currentSpeedPx * PX_TO_CM_PER_SEC).toFixed(1);
+      focusSpeedValBadge.textContent = `${speedCmSec} cm/s`;
+
+      focusStatusBadge.className = "text-sky-300 font-semibold";
+      if (focusedBall.isStopped) {
+        focusStatusBadge.textContent = `선택된 공: #${focusedBall.id} (정지/대기중)`;
+        focusStopText.textContent = "발사 (재개)";
+        focusStopIcon.className = "fa-solid fa-circle-play";
+      } else {
+        focusStatusBadge.textContent = `선택된 공: #${focusedBall.id} (${speedCmSec} cm/s)`;
+        focusStopText.textContent = "정지";
+        focusStopIcon.className = "fa-solid fa-circle-stop";
+      }
+    }
+
+    // Reset Scene
+    function resetSimulation() {
+      const rect = canvas.getBoundingClientRect();
+      const initialBall = createBall(rect.width / 2, rect.height / 2, 16, currentTab === 'setup', 200);
+      balls = [initialBall];
+      selectedBallId = initialBall.id;
+      bounceCount = 0;
+      bounceCountText.textContent = '0';
+      ballCountText.textContent = '1개';
+      updateSpeedDisplay();
+      updateFocusStatusUI();
+    }
+
+    // Add a new ball
+    function addNewBall(spawnX = null, spawnY = null, forceStopped = false) {
+      const rect = canvas.getBoundingClientRect();
+      const radius = 16;
+      let x = spawnX;
+      let y = spawnY;
+
+      if (x === null || y === null) {
+        let attempts = 0;
+        let safe = false;
+        while (!safe && attempts < 50) {
+          x = radius + Math.random() * (rect.width - 2 * radius);
+          y = radius + Math.random() * (rect.height - 2 * radius);
+          safe = balls.every(b => Math.hypot(b.x - x, b.y - y) >= b.radius + radius + 4);
+          attempts++;
+        }
+      }
+
+      const isStopped = forceStopped || (currentTab === 'setup');
+      const newBall = createBall(x, y, radius, isStopped);
+      balls.push(newBall);
+      selectedBallId = newBall.id;
+      ballCountText.textContent = `${balls.length}개`;
+      updateFocusStatusUI();
+    }
+
+    // Tab Switching Logic
+    function setTab(mode) {
+      currentTab = mode;
+      if (mode === 'free') {
+        tabFreeMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-sky-600 text-white shadow-md";
+        tabSetupMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-[#313244] text-slate-300 hover:text-white";
+        setupControlsGroup.classList.add('hidden');
+        guideHint.innerHTML = '<i class="fa-solid fa-hand-pointer text-sky-400"></i> 공을 클릭하여 초점을 맞추거나 빈 공간을 클릭하여 공을 즉시 생성합니다.';
+      } else {
+        tabSetupMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-sky-600 text-white shadow-md";
+        tabFreeMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-[#313244] text-slate-300 hover:text-white";
+        setupControlsGroup.classList.remove('hidden');
+        guideHint.innerHTML = '<i class="fa-solid fa-up-down-left-right text-amber-400"></i> <b>수동 설정</b>: 공 본체를 드래그하여 위치 이동, 화살표 끝점을 드래그하여 초기 속도/방향을 지정하세요!';
+      }
+    }
+
+    // Draw Coordinate Grid & Origin Axis
+    function drawCoordinateGrid() {
+      if (!showGrid && currentTab !== 'setup') return;
+
+      const rect = canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      const centerX = Math.round(width / 2);
+      const centerY = Math.round(height / 2);
+
+      ctx.save();
+      ctx.lineWidth = 1;
+
+      // 1. Grid Lines (40px Grid)
+      const gridSize = 40;
+      ctx.strokeStyle = '#262738';
+      ctx.fillStyle = '#6c7086';
+      ctx.font = '9px monospace';
+
+      // Vertical Grid Lines
+      for (let x = centerX % gridSize; x < width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+
+      // Horizontal Grid Lines
+      for (let y = centerY % gridSize; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // 2. Main Axes (X & Y Axis)
+      ctx.strokeStyle = '#45475a';
+      ctx.lineWidth = 2;
+
+      // X-Axis
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(width, centerY);
+      ctx.stroke();
+
+      // Y-Axis
+      ctx.beginPath();
+      ctx.moveTo(centerX, 0);
+      ctx.lineTo(centerX, height);
+      ctx.stroke();
+
+      // 3. Origin Point (0,0) Marker
+      ctx.fillStyle = '#f38ba8';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Origin Label
+      ctx.fillStyle = '#cdd6f4';
+      ctx.fillText('(0,0)', centerX + 6, centerY - 6);
+      ctx.fillText('X축', width - 25, centerY - 6);
+      ctx.fillText('Y축', centerX + 6, 12);
+
+      ctx.restore();
+    }
+
+    // Draw Velocity Direction Vector Handle (For Setup / Focused Ball)
+    function drawVelocityVector(ball) {
+      const vx = ball.isStopped ? ball.savedDx : ball.dx;
+      const vy = ball.isStopped ? ball.savedDy : ball.dy;
+      const speed = Math.hypot(vx, vy);
+
+      const endX = ball.x + vx * VECTOR_SCALE;
+      const endY = ball.y + vy * VECTOR_SCALE;
+
+      ctx.save();
+      // Line
+      ctx.beginPath();
+      ctx.moveTo(ball.x, ball.y);
+      ctx.lineTo(endX, endY);
+      ctx.strokeStyle = '#f59e0b'; // Amber arrow
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Arrow Head
+      const angle = Math.atan2(vy, vx);
+      const headLen = 10;
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+
+      // Vector Tip Drag Handle Circle
+      ctx.beginPath();
+      ctx.arc(endX, endY, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 2D Elastic Collision Physics (Conservation of Momentum & Energy)
+    function resolveBallCollisions() {
+      const n = balls.length;
+      // Multi-pass constraint solver for physical stability
+      const iterations = 4;
+      for (let iter = 0; iter < iterations; iter++) {
+        for (let i = 0; i < n; i++) {
+          for (let j = i + 1; j < n; j++) {
+            const b1 = balls[i];
+            const b2 = balls[j];
+
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = b1.radius + b2.radius;
+
+            if (dist < minDist && dist > 0) {
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const overlap = minDist - dist;
+
+              // Mass calculation proportional to sphere area (m = r^2)
+              const m1 = b1.isStopped ? 1e9 : (b1.radius * b1.radius);
+              const m2 = b2.isStopped ? 1e9 : (b2.radius * b2.radius);
+
+              // Positional de-overlapping weighted by inverse mass
+              const invM1 = b1.isStopped ? 0 : 1 / m1;
+              const invM2 = b2.isStopped ? 0 : 1 / m2;
+              const invMassSum = invM1 + invM2;
+
+              if (invMassSum > 0) {
+                b1.x -= nx * overlap * (invM1 / invMassSum);
+                b1.y -= ny * overlap * (invM1 / invMassSum);
+                b2.x += nx * overlap * (invM2 / invMassSum);
+                b2.y += ny * overlap * (invM2 / invMassSum);
+              }
+
+              // Relative velocity vector (v1 - v2)
+              const rvx = b1.dx - b2.dx;
+              const rvy = b1.dy - b2.dy;
+              const velAlongNormal = rvx * nx + rvy * ny;
+
+              // Resolve impulse only if balls are moving toward each other
+              if (velAlongNormal > 0 && iter === 0) {
+                const impulse = (2 * velAlongNormal) / (m1 + m2);
+
+                if (!b1.isStopped) {
+                  b1.dx -= impulse * m2 * nx;
+                  b1.dy -= impulse * m2 * ny;
+                }
+                if (!b2.isStopped) {
+                  b2.dx += impulse * m1 * nx;
+                  b2.dy += impulse * m1 * ny;
+                }
+
+                bounceCount++;
+                bounceCountText.textContent = bounceCount.toLocaleString();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Draw 3D Shaded Ball
+    function draw3DBall(x, y, radius, hue, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      const highlightX = x - radius * 0.35;
+      const highlightY = y - radius * 0.35;
+      const gradient = ctx.createRadialGradient(
+        highlightX, highlightY, radius * 0.08,
+        x, y, radius
+      );
+
+      gradient.addColorStop(0, `hsl(${hue}, 100%, 88%)`);
+      gradient.addColorStop(0.45, `hsl(${hue}, 85%, 55%)`);
+      gradient.addColorStop(0.9, `hsl(${hue}, 90%, 30%)`);
+      gradient.addColorStop(1, `hsl(${hue}, 95%, 20%)`);
+
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      
+      ctx.shadowColor = `hsl(${hue}, 90%, 55%)`;
+      ctx.shadowBlur = radius * 0.4;
+
+      ctx.fill();
+      ctx.closePath();
+      ctx.restore();
+    }
+
+    // Draw Glowing Focus Selection Ring
+    function drawSelectionRing(ball) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Draw Motion Trail
+    function drawTrail(ball) {
+      if (ball.isStopped) return;
+      const len = ball.trail.length;
+      for (let i = 0; i < len; i++) {
+        const point = ball.trail[i];
+        const ratio = (i + 1) / len;
+        const currentRadius = ball.radius * (0.35 + 0.65 * ratio);
+        const alpha = ratio * 0.35;
+        draw3DBall(point.x, point.y, currentRadius, ball.hue, alpha);
+      }
+    }
+
+    // Update Physics Frame with Sub-stepping
+    function updatePhysics() {
+      const rect = canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+
+      const subSteps = 2; // Sub-step physics calculation for high precision
+      for (let step = 0; step < subSteps; step++) {
+        balls.forEach(ball => {
+          if (ball.isStopped) return;
+
+          if (step === 0) {
+            ball.trail.push({ x: ball.x, y: ball.y });
+            if (ball.trail.length > maxTrailLength) {
+              ball.trail.shift();
+            }
+          }
+
+          ball.x += ball.dx / subSteps;
+          ball.y += ball.dy / subSteps;
+
+          let bounced = false;
+
+          if (ball.x + ball.radius >= width) {
+            ball.x = width - ball.radius;
+            ball.dx *= -1;
+            bounced = true;
+          } else if (ball.x - ball.radius <= 0) {
+            ball.x = ball.radius;
+            ball.dx *= -1;
+            bounced = true;
+          }
+
+          if (ball.y + ball.radius >= height) {
+            ball.y = height - ball.radius;
+            ball.dy *= -1;
+            bounced = true;
+          } else if (ball.y - ball.radius <= 0) {
+            ball.y = ball.radius;
+            ball.dy *= -1;
+            bounced = true;
+          }
+
+          if (bounced && step === 0) {
+            bounceCount++;
+            bounceCountText.textContent = bounceCount.toLocaleString();
+          }
+        });
+
+        resolveBallCollisions();
+      }
+    }
+
+    // Animation Render Loop
+    function animate() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      // Render Grid
+      drawCoordinateGrid();
+
+      // Render Trails & Balls
+      balls.forEach(ball => drawTrail(ball));
+      balls.forEach(ball => draw3DBall(ball.x, ball.y, ball.radius, ball.hue, 1));
+
+      // Highlight Focused Ball & Vector Control Line
+      const focusedBall = balls.find(b => b.id === selectedBallId);
+      if (focusedBall) {
+        drawSelectionRing(focusedBall);
+        if (currentTab === 'setup' || focusedBall.isStopped) {
+          drawVelocityVector(focusedBall);
+        }
+      }
+
+      if (isRunning) {
+        updatePhysics();
+        updateFocusStatusUI();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // --- Interactive Event Listeners & Drag Handling ---
+
+    tabFreeMode.addEventListener('click', () => setTab('free'));
+    tabSetupMode.addEventListener('click', () => setTab('setup'));
+    toggleGridCheckbox.addEventListener('change', (e) => {
+      showGrid = e.target.checked;
+    });
+
+    addStoppedBallBtn.addEventListener('click', () => {
+      addNewBall(null, null, true);
+    });
+
+    launchBallBtn.addEventListener('click', () => {
+      const focusedBall = balls.find(b => b.id === selectedBallId);
+      if (!focusedBall) return;
+
+      if (focusedBall.isStopped) {
+        focusedBall.isStopped = false;
+        focusedBall.dx = focusedBall.savedDx || 4;
+        focusedBall.dy = focusedBall.savedDy || 3;
+      } else {
+        focusedBall.isStopped = true;
+        focusedBall.savedDx = focusedBall.dx;
+        focusedBall.savedDy = focusedBall.dy;
+        focusedBall.dx = 0;
+        focusedBall.dy = 0;
+      }
+      updateFocusStatusUI();
+    });
+
+    // Mouse / Touch Pointer Drag Handling for Ball Position & Velocity Vector
+    function getPointerPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function handlePointerDown(e) {
+      const pos = getPointerPos(e);
+      const rect = canvas.getBoundingClientRect();
+
+      // 1. Check Vector Tip Drag Handle
+      const focusedBall = balls.find(b => b.id === selectedBallId);
+      if (focusedBall && (currentTab === 'setup' || focusedBall.isStopped)) {
+        const vx = focusedBall.isStopped ? focusedBall.savedDx : focusedBall.dx;
+        const vy = focusedBall.isStopped ? focusedBall.savedDy : focusedBall.dy;
+        const vecEndX = focusedBall.x + vx * VECTOR_SCALE;
+        const vecEndY = focusedBall.y + vy * VECTOR_SCALE;
+
+        if (Math.hypot(pos.x - vecEndX, pos.y - vecEndY) <= 14) {
+          isDraggingVector = true;
+          draggedBall = focusedBall;
+          return;
+        }
+      }
+
+      // 2. Check Ball Drag or Selection
+      const clickedBall = balls.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius + 6);
+      if (clickedBall) {
+        selectedBallId = clickedBall.id;
+        updateFocusStatusUI();
+        if (currentTab === 'setup' || clickedBall.isStopped) {
+          isDraggingBall = true;
+          draggedBall = clickedBall;
+        }
+      } else {
+        // Spawn ball on empty click space
+        const clampedX = Math.max(16, Math.min(rect.width - 16, pos.x));
+        const clampedY = Math.max(16, Math.min(rect.height - 16, pos.y));
+        addNewBall(clampedX, clampedY, currentTab === 'setup');
+      }
+    }
+
+    function handlePointerMove(e) {
+      if (!draggedBall) return;
+      if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
+      const pos = getPointerPos(e);
+      const rect = canvas.getBoundingClientRect();
+
+      if (isDraggingBall) {
+        // Update Ball Position
+        draggedBall.x = Math.max(draggedBall.radius, Math.min(rect.width - draggedBall.radius, pos.x));
+        draggedBall.y = Math.max(draggedBall.radius, Math.min(rect.height - draggedBall.radius, pos.y));
+      } else if (isDraggingVector) {
+        // Update Velocity Vector
+        const dx = (pos.x - draggedBall.x) / VECTOR_SCALE;
+        const dy = (pos.y - draggedBall.y) / VECTOR_SCALE;
+
+        if (draggedBall.isStopped) {
+          draggedBall.savedDx = dx;
+          draggedBall.savedDy = dy;
+        } else {
+          draggedBall.dx = dx;
+          draggedBall.dy = dy;
+        }
+        updateFocusStatusUI();
+      }
+    }
+
+    function handlePointerUp() {
+      isDraggingBall = false;
+      isDraggingVector = false;
+      draggedBall = null;
+    }
+
+    canvas.addEventListener('mousedown', handlePointerDown);
+    canvas.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+
+    canvas.addEventListener('touchstart', handlePointerDown, { passive: true });
+    canvas.addEventListener('touchmove', handlePointerMove, { passive: false });
+    window.addEventListener('touchend', handlePointerUp);
+
+    // Controls bindings
+    focusReverseBtn.addEventListener('click', () => {
+      const focusedBall = balls.find(b => b.id === selectedBallId);
+      if (!focusedBall) return;
+      if (focusedBall.isStopped) {
+        focusedBall.savedDx *= -1;
+        focusedBall.savedDy *= -1;
+      } else {
+        focusedBall.dx *= -1;
+        focusedBall.dy *= -1;
+      }
+    });
+
+    focusStopBtn.addEventListener('click', () => {
+      const focusedBall = balls.find(b => b.id === selectedBallId);
+      if (!focusedBall) return;
+
+      if (focusedBall.isStopped) {
+        focusedBall.isStopped = false;
+        const currentSpeed = parseFloat(focusSpeedSlider.value);
+        const angle = Math.atan2(focusedBall.savedDy, focusedBall.savedDx) || 0;
+        focusedBall.dx = Math.cos(angle) * currentSpeed;
+        focusedBall.dy = Math.sin(angle) * currentSpeed;
+      } else {
+        focusedBall.isStopped = true;
+        focusedBall.savedDx = focusedBall.dx;
+        focusedBall.savedDy = focusedBall.dy;
+        focusedBall.dx = 0;
+        focusedBall.dy = 0;
+      }
+      updateFocusStatusUI();
+    });
+
+    focusDeleteBtn.addEventListener('click', () => {
+      if (selectedBallId === null) return;
+      balls = balls.filter(b => b.id !== selectedBallId);
+      selectedBallId = balls.length > 0 ? balls[balls.length - 1].id : null;
+      ballCountText.textContent = `${balls.length}개`;
+      updateFocusStatusUI();
+    });
+
+    focusSpeedSlider.addEventListener('input', (e) => {
+      const focusedBall = balls.find(b => b.id === selectedBallId);
+      if (!focusedBall) return;
+
+      const speed = parseFloat(e.target.value);
+      if (focusedBall.isStopped) {
+        const angle = Math.atan2(focusedBall.savedDy, focusedBall.savedDx) || 0;
+        focusedBall.savedDx = Math.cos(angle) * speed;
+        focusedBall.savedDy = Math.sin(angle) * speed;
+      } else {
+        const angle = Math.atan2(focusedBall.dy, focusedBall.dx) || 0;
+        focusedBall.dx = Math.cos(angle) * speed;
+        focusedBall.dy = Math.sin(angle) * speed;
+      }
+      updateFocusStatusUI();
+    });
+
+    addBallBtn.addEventListener('click', () => addNewBall());
+    colorBtn.addEventListener('click', () => {
+      balls.forEach(ball => {
+        ball.hue = (ball.hue + Math.floor(Math.random() * 140) + 60) % 360;
+      });
+    });
+
+    reverseAllBtn.addEventListener('click', () => {
+      balls.forEach(ball => {
+        if (ball.isStopped) {
+          ball.savedDx *= -1;
+          ball.savedDy *= -1;
+        } else {
+          ball.dx *= -1;
+          ball.dy *= -1;
+        }
+      });
+    });
+
+    playPauseBtn.addEventListener('click', () => {
+      isRunning = !isRunning;
+      if (isRunning) {
+        playPauseIcon.className = "fa-solid fa-pause";
+        playPauseText.textContent = "일시정지";
+      } else {
+        playPauseIcon.className = "fa-solid fa-play";
+        playPauseText.textContent = "재생";
+      }
+    });
+
+    resetBtn.addEventListener('click', resetSimulation);
+
+    speedSlider.addEventListener('input', (e) => {
+      const speed = parseFloat(e.target.value);
+      updateSpeedDisplay();
+      balls.forEach(ball => {
+        if (!ball.isStopped) {
+          const angle = Math.atan2(ball.dy, ball.dx) || 0;
+          ball.dx = Math.cos(angle) * speed;
+          ball.dy = Math.sin(angle) * speed;
+        }
+      });
+      updateFocusStatusUI();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    window.onload = () => {
+      resizeCanvas();
+      resetSimulation();
+      setTab('free');
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>
