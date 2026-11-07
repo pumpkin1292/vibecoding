@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중3 과학 스마트 학습지 - 관리자 응답 제출 내역 관리</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+
+    <!-- Firebase SDK Modular Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config Integration
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'middle3-science-3q-worksheet';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyDlPkkPiTVoO3ZGNUAZhkyMlLrakkJFWM4",
+                authDomain: "vibecoding-project-db6b2.firebaseapp.com",
+                projectId: "vibecoding-project-db6b2",
+                storageBucket: "vibecoding-project-db6b2.firebasestorage.app",
+                messagingSenderId: "419029856585",
+                appId: "1:419029856585:web:352df2c8a02ed49d6b2a98",
+                measurementId: "G-R4FVY3G9ZT"
+            };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let fetchedDataList = [];
+
+        // Auth handling
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const userCred = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUser = userCred.user;
+                } else {
+                    const userCred = await signInAnonymously(auth);
+                    currentUser = userCred.user;
+                }
+            } catch (err) {
+                console.warn("Auth warning:", err);
+            }
+            // Fetch initial data after auth
+            loadSubmissions();
+        }
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) currentUser = user;
+        });
+
+        // Global Fetch Submissions Handler
+        window.loadSubmissions = async function() {
+            const statusEl = document.getElementById('loading-status');
+            const tableBody = document.getElementById('submission-table-body');
+            statusEl.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-2 text-sky-600"></i> 데이터를 불러오는 중입니다...`;
+            statusEl.className = "p-4 bg-sky-50 text-sky-800 rounded-xl text-xs font-medium flex items-center justify-center mb-4";
+
+            try {
+                if (!currentUser) {
+                    const cred = await signInAnonymously(auth);
+                    currentUser = cred.user;
+                }
+
+                // Path rule compliance: /artifacts/{appId}/public/data/student_submissions
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'student_submissions');
+                const querySnapshot = await getDocs(colRef);
+
+                fetchedDataList = [];
+                tableBody.innerHTML = '';
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    
+                    // Format Timestamp
+                    let formattedDate = '-';
+                    if (data.submittedAt && data.submittedAt.toDate) {
+                        const dateObj = data.submittedAt.toDate();
+                        formattedDate = dateObj.toLocaleString('ko-KR');
+                    } else if (data.submittedAt) {
+                        formattedDate = String(data.submittedAt);
+                    }
+
+                    const item = {
+                        id: doc.id,
+                        grade: data.grade || '3',
+                        classNo: data.classNo || '-',
+                        studentNo: data.studentNo || '-',
+                        studentName: data.studentName || '-',
+                        score: data.score !== undefined ? data.score : 0,
+                        q1: data.answers?.q1 || '-',
+                        q2: data.answers?.q2 || '-',
+                        q3: data.answers?.q3 || '-',
+                        timeSpent: data.timeSpentFormatted || '-',
+                        submittedAt: formattedDate
+                    };
+
+                    fetchedDataList.push(item);
+                });
+
+                // Sort by grade, class, number
+                fetchedDataList.sort((a, b) => {
+                    if (a.classNo !== b.classNo) return Number(a.classNo) - Number(b.classNo);
+                    return Number(a.studentNo) - Number(b.studentNo);
+                });
+
+                // Render Table
+                if (fetchedDataList.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-400 text-xs">아직 제출된 학생 응답 데이터가 없습니다.</td></tr>`;
+                    statusEl.className = "p-4 bg-amber-50 text-amber-800 rounded-xl text-xs font-medium flex items-center justify-center mb-4";
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-info mr-2 text-amber-600"></i> 제출된 데이터가 0건입니다.`;
+                } else {
+                    renderTableRows(fetchedDataList);
+                    statusEl.className = "p-4 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-medium flex items-center justify-center mb-4";
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i> 총 <strong>${fetchedDataList.length}</strong>건의 응답을 성공적으로 불러왔습니다.`;
+                }
+
+                document.getElementById('total-count-badge').innerText = `${fetchedDataList.length} 건`;
+
+            } catch (err) {
+                console.error("Data load error:", err);
+                statusEl.className = "p-4 bg-rose-50 text-rose-800 rounded-xl text-xs font-medium flex items-center justify-center mb-4";
+                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2 text-rose-600"></i> 데이터 읽기 실패: ${err.message} (보안 규칙 설정을 확인해 주세요)`;
+            }
+        };
+
+        // Render Rows Helper
+        function renderTableRows(list) {
+            const tableBody = document.getElementById('submission-table-body');
+            tableBody.innerHTML = list.map((item, idx) => `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs text-slate-700">
+                    <td class="px-4 py-3 text-center font-mono text-slate-400">${idx + 1}</td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${item.grade}학년 ${item.classNo}반 ${item.studentNo}번</td>
+                    <td class="px-4 py-3 font-bold text-sky-900">${item.studentName}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2.5 py-1 rounded-full font-black text-xs ${item.score >= 80 ? 'bg-emerald-100 text-emerald-700' : item.score >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}">
+                            ${item.score}점
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center font-mono">Q1: ${item.q1}</td>
+                    <td class="px-4 py-3 text-center font-mono">Q2: ${item.q2}</td>
+                    <td class="px-4 py-3 text-center font-mono">Q3: ${item.q3}</td>
+                    <td class="px-4 py-3 text-center text-slate-500 font-mono">${item.timeSpent}</td>
+                    <td class="px-4 py-3 text-center text-slate-400 text-[11px]">${item.submittedAt}</td>
+                </tr>
+            `).join('');
+        }
+
+        // CSV Export Function (UTF-8 BOM for Excel compatibility)
+        window.downloadCSV = function() {
+            if (fetchedDataList.length === 0) {
+                const modal = document.getElementById('msg-modal');
+                modal.classList.remove('hidden');
+                return;
+            }
+
+            // Define CSV Headers
+            const headers = ["번호", "학년", "반", "번호", "이름", "점수", "문제1답안", "문제2답안", "문제3답안", "소요시간", "제출일시"];
+            
+            // Build Rows
+            const csvRows = [headers.join(",")];
+
+            fetchedDataList.forEach((item, index) => {
+                const row = [
+                    index + 1,
+                    `"${item.grade}"`,
+                    `"${item.classNo}"`,
+                    `"${item.studentNo}"`,
+                    `"${item.studentName}"`,
+                    item.score,
+                    `"${item.q1}"`,
+                    `"${item.q2}"`,
+                    `"${item.q3}"`,
+                    `"${item.timeSpent}"`,
+                    `"${item.submittedAt}"`
+                ];
+                csvRows.push(row.join(","));
+            });
+
+            // Add UTF-8 BOM (\uFEFF) to prevent Korean text encoding breakage in MS Excel
+            const csvContent = "\uFEFF" + csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // Generate File Name with Current Date
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0,10);
+            const fileName = `중3과학_학습지_제출내역_${dateStr}.csv`;
+
+            // Trigger Browser Download
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        // Filter Table Search Logic
+        window.filterTable = function() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            if (!query) {
+                renderTableRows(fetchedDataList);
+                return;
+            }
+            const filtered = fetchedDataList.filter(item => 
+                item.studentName.toLowerCase().includes(query) ||
+                item.classNo.toString().includes(query) ||
+                item.studentNo.toString().includes(query)
+            );
+            renderTableRows(filtered);
+        };
+    </script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-700 flex items-center justify-center text-white font-black text-xl shadow-md">
+                    <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg text-slate-900 leading-tight">파이어스토어 학생 제출 데이터 관리</h1>
+                    <p class="text-xs text-slate-500">중3 과학 스마트 학습지 · 엑셀(CSV) 저장 관리자 도구</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button onclick="loadSubmissions()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center transition">
+                    <i class="fa-solid fa-arrows-rotate mr-1.5"></i> 새로고침
+                </button>
+                <button onclick="downloadCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center transition">
+                    <i class="fa-solid fa-download mr-1.5"></i> CSV (엑셀) 다운로드
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Status Box -->
+        <div id="loading-status" class="p-4 bg-sky-50 text-sky-800 rounded-xl text-xs font-medium flex items-center justify-center mb-4">
+            <i class="fa-solid fa-spinner animate-spin mr-2"></i> 데이터를 불러오는 중입니다...
+        </div>
+
+        <!-- Content Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            
+            <!-- Table Action Bar -->
+            <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/50">
+                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                    <h2 class="font-extrabold text-sm text-slate-800 flex items-center">
+                        <i class="fa-solid fa-users text-sky-600 mr-2"></i> 학생 제출 명단
+                    </h2>
+                    <span id="total-count-badge" class="bg-sky-100 text-sky-800 text-[11px] font-bold px-2 py-0.5 rounded-full">0 건</span>
+                </div>
+
+                <div class="flex items-center space-x-2 w-full sm:w-64">
+                    <div class="relative w-full">
+                        <input type="text" id="search-input" onkeyup="filterTable()" placeholder="이름 또는 반/번호 검색..." class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-500">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submissions Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100/70 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                            <th class="px-4 py-3 text-center">No.</th>
+                            <th class="px-4 py-3">인적사항 (반/번호)</th>
+                            <th class="px-4 py-3">성명 (이름)</th>
+                            <th class="px-4 py-3 text-center">점수</th>
+                            <th class="px-4 py-3 text-center">문제1 답</th>
+                            <th class="px-4 py-3 text-center">문제2 답</th>
+                            <th class="px-4 py-3 text-center">문제3 답</th>
+                            <th class="px-4 py-3 text-center">소요시간</th>
+                            <th class="px-4 py-3 text-center">제출일시</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submission-table-body">
+                        <tr>
+                            <td colspan="9" class="py-12 text-center text-slate-400 text-xs">
+                                데이터를 로딩 중입니다...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer Controls -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                <span>* CSV 파일 다운로드 시 엑셀에서 한글 깨짐 없이 바로 사용할 수 있습니다.</span>
+                <button onclick="downloadCSV()" class="px-3 py-1.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition">
+                    <i class="fa-solid fa-file-csv mr-1"></i> CSV 저장
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Notice -->
+    <div id="msg-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 text-center space-y-4 border border-slate-200 shadow-xl">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">다운로드할 데이터가 없습니다</h3>
+            <p class="text-xs text-slate-600">학생들이 학습지를 제출하면 이곳에 데이터가 쌓이며 CSV 파일로 다운로드할 수 있습니다.</p>
+            <button onclick="document.getElementById('msg-modal').classList.add('hidden')" class="w-full py-2 bg-slate-800 text-white font-bold text-xs rounded-xl">확인</button>
+        </div>
+    </div>
+
+</body>
+</html>
