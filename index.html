@@ -1,959 +1,1997 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>공 튀기기 프로그램</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts & FontAwesome Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body {
-      font-family: 'Pretendard', sans-serif;
-      user-select: none;
-      background-color: #1e1e2e;
-    }
-    
-    /* Custom Slider Styling */
-    input[type=range] {
-      -webkit-appearance: none;
-      background: transparent;
-    }
-    input[type=range]::-webkit-slider-track {
-      height: 6px;
-      border-radius: 3px;
-      background: #313244;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      height: 16px;
-      width: 16px;
-      border-radius: 50%;
-      background: #89b4fa;
-      margin-top: -5px;
-      cursor: pointer;
-      box-shadow: 0 0 8px rgba(137, 180, 250, 0.5);
-      transition: transform 0.15s ease;
-    }
-    input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-  </style>
-</head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between items-center p-3 md:p-6">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2050년 미래도시 에너지 시뮬레이터 | 중3 과학</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;800&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- Main Container -->
-  <div class="max-w-4xl w-full flex flex-col items-center gap-4 my-auto">
-    
-    <!-- Header -->
-    <header class="text-center space-y-1">
-      <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-100 flex items-center justify-center gap-3">
-        <i class="fa-solid fa-circle-dot text-sky-400"></i>
-        공 튀기기 시뮬레이터
-      </h1>
-      <p class="text-xs md:text-sm text-slate-400">좌표 격자망, 드래그 배치 & 발사 벡터 설정, 2차원 완전 탄성 충돌 (운동량 보존)</p>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                        orbitron: ['Orbitron', 'sans-serif'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#090D16',
+                            panel: '#121927',
+                            card: '#1B2436',
+                            cyan: '#00F0FF',
+                            green: '#10B981',
+                            amber: '#F59E0B',
+                            purple: '#A855F7',
+                            rose: '#F43F5E'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090D16;
+            color: #E2E8F0;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
+        }
+        .glass-panel {
+            background: rgba(18, 25, 39, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(27, 36, 54, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 240, 255, 0.12);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+        }
+        .glow-rose {
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.3);
+        }
+        .glow-green {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090D16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1B2436;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00F0FF;
+        }
+        @keyframes floatAnim {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-float {
+            animation: floatAnim 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-slate-800 bg-slate-950/90 sticky top-0 z-40 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
+                    <i class="fa-solid fa-city"></i>
+                </div>
+                <div>
+                    <h1 class="font-orbitron font-extrabold text-base sm:text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-400">
+                        2050 CITY SAVER
+                    </h1>
+                    <p class="text-[11px] text-slate-400 font-medium">중3 과학 8단원 에너지 & 기후 시뮬레이션</p>
+                </div>
+            </div>
+
+            <!-- Round & Year Timeline -->
+            <div class="flex items-center gap-2 sm:gap-4">
+                <div class="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-clock text-cyan-400 text-xs"></i>
+                    <span class="text-xs text-slate-400 font-semibold">현재 연도:</span>
+                    <span id="header-year" class="font-orbitron font-extrabold text-cyan-300 text-sm sm:text-base">2026년 (1/4차시)</span>
+                </div>
+                <!-- 📝 디지털 학습지 모달 열기 버튼 추가 -->
+                <button onclick="openWorksheetModal()" class="px-3 py-2 rounded-xl bg-purple-950/80 border border-purple-500/50 text-purple-300 font-bold text-xs hover:bg-purple-900 transition flex items-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-file-pen text-purple-400"></i>
+                    <span class="hidden sm:inline">디지털 학습지</span>
+                </button>
+                <button onclick="toggleAudio()" id="btn-audio" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-400 transition" title="사운드 켜기/끄기">
+                    <i id="audio-icon" class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
+                </button>
+                <!-- ⚙️ 히든 교사 전용 퀴즈 관리자 버튼 -->
+                <button onclick="openTeacherAdmin()" class="p-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-400 hover:bg-amber-950 transition relative group" title="교사 전용 퀴즈 커스텀 관리자">
+                    <i class="fa-solid fa-user-gear text-xs sm:text-sm"></i>
+                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping"></span>
+                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full"></span>
+                </button>
+            </div>
+        </div>
     </header>
 
-    <!-- Mode Selector Tabs -->
-    <div class="flex items-center gap-2 p-1.5 bg-[#181825] border border-[#313244] rounded-xl w-full max-w-3xl">
-      <button id="tabFreeMode" class="flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-sky-600 text-white shadow-md">
-        <i class="fa-solid fa-dice"></i>
-        <span>🎲 자유 시뮬레이션 모드</span>
-      </button>
-      <button id="tabSetupMode" class="flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-[#313244] text-slate-300 hover:text-white">
-        <i class="fa-solid fa-ruler-combined"></i>
-        <span>📐 좌표격자 & 수동 설정 모드</span>
-      </button>
+    <!-- Main Workspace -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+
+        <!-- Top Dashboard Status Bars (4 Key Indicators) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- 1. Power Supply Gauge (전력 충족률) -->
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt text-yellow-400"></i> 전력 공급율
+                    </span>
+                    <span id="val-power-percent" class="font-orbitron font-extrabold text-sm text-yellow-400">100%</span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div id="bar-power" class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500" style="width: 100%;"></div>
+                </div>
+                <div class="flex justify-between items-center mt-2 text-[11px] text-slate-400">
+                    <span>공급: <strong id="val-power-current" class="text-white">100 GW</strong></span>
+                    <span>필요: <strong id="val-power-needed" class="text-slate-300">100 GW</strong></span>
+                </div>
+            </div>
+
+            <!-- 2. Global Temperature Gauge (지구 온도 상승) -->
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-temperature-full text-rose-400"></i> 지구 온도 상승량
+                    </span>
+                    <span id="val-temp-text" class="font-orbitron font-extrabold text-sm text-emerald-400">+0.80 ℃</span>
+                </div>
+                <!-- Thermometer Bar -->
+                <div class="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-800 relative">
+                    <div id="bar-temp" class="bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 h-full rounded-full transition-all duration-500" style="width: 40%;"></div>
+                    <!-- Target 1.5C line mark -->
+                    <div class="absolute top-0 bottom-0 left-[75%] w-0.5 bg-rose-400 z-10" title="임계점 +1.5℃"></div>
+                </div>
+                <div class="flex justify-between items-center mt-2 text-[11px] text-slate-400">
+                    <span>현재: <strong id="val-temp-sub" class="text-emerald-400">+0.80 ℃</strong></span>
+                    <span class="text-rose-400 font-semibold">위험한계: +1.50 ℃</span>
+                </div>
+            </div>
+
+            <!-- 3. Budget (에너지 예산) -->
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-coins text-cyan-400"></i> 에너지 남아있는 예산
+                    </span>
+                    <span id="val-budget-text" class="font-orbitron font-extrabold text-sm text-cyan-300">120 억</span>
+                </div>
+                <div class="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div id="bar-budget" class="bg-gradient-to-r from-teal-400 to-cyan-400 h-full rounded-full transition-all duration-500" style="width: 80%;"></div>
+                </div>
+                <div class="flex justify-between items-center mt-2 text-[11px] text-slate-400">
+                    <span>매 턴 보조금 지급</span>
+                    <span class="text-cyan-400 font-mono font-bold">+50억 / 턴</span>
+                </div>
+            </div>
+
+            <!-- 4. Public Approval (시민 수용성) -->
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-users text-purple-400"></i> 시민 만족도 & 평판
+                    </span>
+                    <span id="val-approval-text" class="font-orbitron font-extrabold text-sm text-purple-300">85%</span>
+                </div>
+                <div class="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div id="bar-approval" class="bg-gradient-to-r from-indigo-400 to-purple-400 h-full rounded-full transition-all duration-500" style="width: 85%;"></div>
+                </div>
+                <div class="flex justify-between items-center mt-2 text-[11px] text-slate-400">
+                    <span>정전/이상기후 발생 시 하락</span>
+                    <span id="status-citizen-text" class="text-emerald-400">매우 안심</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Center Workspace: Interactive City & Construction Center -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Column (7 cols): Interactive City Visualizer & Installed Plants -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                
+                <!-- Dynamic Canvas & City Sky View -->
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800 relative overflow-hidden flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3 z-10">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-mountain-city text-cyan-400"></i> 2050 미래도시 실시간 기후 & 전력망
+                            </h3>
+                        </div>
+                        <span id="weather-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-sun text-amber-400"></i> 기상 상태: 맑음 (태양광 100%)
+                        </span>
+                    </div>
+
+                    <!-- Canvas Graphic Render -->
+                    <div class="relative w-full h-48 sm:h-56 rounded-xl overflow-hidden bg-slate-950 border border-slate-800/80">
+                        <canvas id="cityCanvas" class="w-full h-full block"></canvas>
+                        
+                        <!-- Overlay Status Warning text if any -->
+                        <div id="city-warning-overlay" class="absolute inset-0 bg-rose-950/40 backdrop-blur-[2px] hidden flex flex-col items-center justify-center p-4 text-center">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-400 text-3xl mb-2 animate-bounce"></i>
+                            <h4 class="font-extrabold text-white text-base">⚠️ 경고: 전력 부족 & 정전위험 발생!</h4>
+                            <p class="text-xs text-rose-200 mt-1">발전소를 즉시 추가 건설하여 도시 셧다운을 막으세요.</p>
+                        </div>
+                    </div>
+
+                    <!-- Installed Plants Counter Summary -->
+                    <div class="mt-4 grid grid-cols-4 gap-2 text-center text-xs">
+                        <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+                            <span class="block text-[10px] text-slate-400">🏭 화력</span>
+                            <strong id="count-coal" class="font-orbitron font-bold text-rose-400 text-sm">1기</strong>
+                        </div>
+                        <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+                            <span class="block text-[10px] text-slate-400">☀️ 태양광/풍력</span>
+                            <strong id="count-renewable" class="font-orbitron font-bold text-emerald-400 text-sm">1기</strong>
+                        </div>
+                        <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+                            <span class="block text-[10px] text-slate-400">💧 수소 연료전지</span>
+                            <strong id="count-hydrogen" class="font-orbitron font-bold text-cyan-400 text-sm">1기</strong>
+                        </div>
+                        <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+                            <span class="block text-[10px] text-slate-400">🌊 수력/친환경</span>
+                            <strong id="count-hydro" class="font-orbitron font-bold text-indigo-400 text-sm">0기</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4대 장관 특수 스킬 센터 (Minister Skill Buttons) -->
+                <div class="glass-panel rounded-2xl p-5 border border-purple-500/30">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-id-card-clip text-purple-400"></i> 장관단 특수 능력 (게임 당 1회 사용)
+                        </h3>
+                        <span class="text-[11px] text-purple-300 font-semibold">모둠원 협의 후 클릭!</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <!-- CEO Skill -->
+                        <button onclick="useSkill('CEO')" id="skill-btn-CEO" class="p-3 rounded-xl bg-slate-900 border border-cyan-500/40 hover:bg-cyan-950 transition flex flex-col items-center text-center group">
+                            <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold mb-1.5 group-hover:scale-110 transition">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <span class="text-xs font-bold text-white">CEO (에너지)</span>
+                            <span class="text-[10px] text-cyan-300 mt-1">보조금 +30억</span>
+                        </button>
+
+                        <!-- CCO Skill -->
+                        <button onclick="useSkill('CCO')" id="skill-btn-CCO" class="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 hover:bg-emerald-950 transition flex flex-col items-center text-center group">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold mb-1.5 group-hover:scale-110 transition">
+                                <i class="fa-solid fa-cloud-sun"></i>
+                            </div>
+                            <span class="text-xs font-bold text-white">CCO (기후)</span>
+                            <span class="text-[10px] text-emerald-300 mt-1">다음 이벤트 예측</span>
+                        </button>
+
+                        <!-- CTO Skill -->
+                        <button onclick="useSkill('CTO')" id="skill-btn-CTO" class="p-3 rounded-xl bg-slate-900 border border-purple-500/40 hover:bg-purple-950 transition flex flex-col items-center text-center group">
+                            <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold mb-1.5 group-hover:scale-110 transition">
+                                <i class="fa-solid fa-flask"></i>
+                            </div>
+                            <span class="text-xs font-bold text-white">CTO (기술)</span>
+                            <span class="text-[10px] text-purple-300 mt-1">신재생 효율 +20%</span>
+                        </button>
+
+                        <!-- CSO Skill -->
+                        <button onclick="useSkill('CSO')" id="skill-btn-CSO" class="p-3 rounded-xl bg-slate-900 border border-amber-500/40 hover:bg-amber-950 transition flex flex-col items-center text-center group">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-1.5 group-hover:scale-110 transition">
+                                <i class="fa-solid fa-rocket"></i>
+                            </div>
+                            <span class="text-xs font-bold text-white">CSO (문명)</span>
+                            <span class="text-[10px] text-amber-300 mt-1">시민 만족도 +20%</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column (5 cols): Construction Market & Round Action -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Construction Selection List -->
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800 flex-grow flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-industry text-cyan-400"></i> 에너지 발전소 건설 승인
+                            </h3>
+                            <span class="text-xs text-slate-400 font-mono">건설 비용 충당 필요</span>
+                        </div>
+
+                        <div class="space-y-3">
+                            
+                            <!-- Card 1: Fossil Coal/Gas Plant -->
+                            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-rose-500/30 hover:border-rose-500/70 transition flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-rose-950/80 text-rose-400 flex items-center justify-center text-lg border border-rose-800">
+                                        <i class="fa-solid fa-smog"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-bold text-white text-xs sm:text-sm">화력 발전소</h4>
+                                            <span class="text-[10px] font-bold text-rose-400 bg-rose-950 px-1.5 py-0.5 rounded border border-rose-800">온실가스 ⬆</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">
+                                            ⚡전력 +40 GW | 🌡️온도 +0.15 ℃
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onclick="buildPlant('coal')" class="px-3.5 py-2 rounded-xl bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-700/60 font-bold text-xs transition flex flex-col items-center">
+                                    <span>건설</span>
+                                    <span class="text-[10px] text-rose-300 font-mono">🪙 20억</span>
+                                </button>
+                            </div>
+
+                            <!-- Card 2: Solar & Wind Power Plant -->
+                            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 hover:border-emerald-500/70 transition flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-950/80 text-emerald-400 flex items-center justify-center text-lg border border-emerald-800">
+                                        <i class="fa-solid fa-solar-panel"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-bold text-white text-xs sm:text-sm">태양광 & 풍력</h4>
+                                            <span class="text-[10px] font-bold text-emerald-300 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">빛/운동 $\rightarrow$ 전기</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">
+                                            ⚡전력 +25 GW | 🌡️온도 +0.00 ℃
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onclick="buildPlant('renewable')" class="px-3.5 py-2 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/60 font-bold text-xs transition flex flex-col items-center">
+                                    <span>건설</span>
+                                    <span class="text-[10px] text-emerald-300 font-mono">🪙 30억</span>
+                                </button>
+                            </div>
+
+                            <!-- Card 3: Hydrogen Fuel Cell Plant -->
+                            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-500/70 transition flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-cyan-950/80 text-cyan-400 flex items-center justify-center text-lg border border-cyan-800">
+                                        <i class="fa-solid fa-atom"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-bold text-white text-xs sm:text-sm">수소 연료전지</h4>
+                                            <span class="text-[10px] font-bold text-cyan-300 bg-cyan-950 px-1.5 py-0.5 rounded border border-cyan-800">화학 $\rightarrow$ 전기</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">
+                                            ⚡전력 +35 GW | 🌡️온도 +0.00 ℃ (고효율)
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onclick="buildPlant('hydrogen')" class="px-3.5 py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 font-bold text-xs transition flex flex-col items-center">
+                                    <span>건설</span>
+                                    <span class="text-[10px] text-cyan-300 font-mono">🪙 40억</span>
+                                </button>
+                            </div>
+
+                            <!-- Card 4: Eco Hydro / Marine Plant -->
+                            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 hover:border-indigo-500/70 transition flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-indigo-950/80 text-indigo-400 flex items-center justify-center text-lg border border-indigo-800">
+                                        <i class="fa-solid fa-water"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-bold text-white text-xs sm:text-sm">수력 & 조력 발전</h4>
+                                            <span class="text-[10px] font-bold text-indigo-300 bg-indigo-950 px-1.5 py-0.5 rounded border border-indigo-800">위치 $\rightarrow$ 전기</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">
+                                            ⚡전력 +20 GW | 🌡️온도 +0.00 ℃ (안정적)
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onclick="buildPlant('hydro')" class="px-3.5 py-2 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-indigo-200 border border-indigo-700/60 font-bold text-xs transition flex flex-col items-center">
+                                    <span>건설</span>
+                                    <span class="text-[10px] text-indigo-300 font-mono">🪙 25억</span>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Next Turn Action Button -->
+                    <div class="mt-6 pt-4 border-t border-slate-800">
+                        <button onclick="nextTurn()" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-400 to-purple-600 hover:opacity-95 text-slate-950 font-extrabold text-base tracking-wide shadow-lg glow-cyan transition flex items-center justify-center gap-2">
+                            <span>다음 연도로 진행하기</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Modal: Science Event Popup -->
+    <div id="event-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-2xl border border-amber-500/50 p-6 flex flex-col justify-between shadow-2xl relative">
+            
+            <div class="text-center">
+                <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 mx-auto flex items-center justify-center text-2xl mb-4 animate-bounce">
+                    <i id="event-icon" class="fa-solid fa-cloud-showers-heavy"></i>
+                </div>
+                <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800 inline-block mb-2">
+                    📢 돌발 과학 이벤트 발생!
+                </span>
+                <h3 id="event-title" class="text-xl font-bold text-white mb-2">장마철 먹구름 떼 대거 유입!</h3>
+                <p id="event-desc" class="text-xs text-slate-300 leading-relaxed mb-4">
+                    기권과 날씨 단원 연계: 장마전선의 영향을 수증기가 응결하면서 짙은 먹구름이 도시를 덮었습니다. 태양광 발전 효율이 50% 급감합니다!
+                </p>
+
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-left text-xs space-y-1">
+                    <div class="text-amber-400 font-bold">⚡ 기후/에너지 변화 영향:</div>
+                    <div id="event-effect-text" class="text-slate-300">• 이번 턴 태양광 전력 생산량 -50%</div>
+                </div>
+
+                <!-- 💡 돌발 과학 보너스 퀴즈 영역 -->
+                <div id="quiz-container" class="mt-4 p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-left">
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="quiz-unit-badge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                            💡 돌발 과학 보너스 퀴즈
+                        </span>
+                        <span class="text-[10px] text-amber-400 font-bold">🎯 정답 시 🪙 +20억 획득!</span>
+                    </div>
+                    <p id="quiz-question" class="text-xs font-bold text-white mb-2 leading-relaxed">
+                        퀴즈 질문이 여기에 표시됩니다.
+                    </p>
+                    <div id="quiz-options" class="grid grid-cols-1 gap-1.5">
+                        <!-- 선택지 버튼 동적 생성 -->
+                    </div>
+                    <div id="quiz-feedback" class="hidden mt-2 text-[11px] font-bold p-2.5 rounded-lg border">
+                        <!-- 정답/오답 결과 및 해설 -->
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeEventModal()" class="mt-6 w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm transition">
+                확인 및 도시 대책 수립하기
+            </button>
+        </div>
     </div>
 
-    <!-- Canvas Card Area -->
-    <div class="relative w-full max-w-3xl bg-[#11111b] border-2 border-[#313244] rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center min-h-[380px] md:min-h-[440px]">
-      
-      <!-- Canvas Element -->
-      <canvas id="canvas" class="w-full h-full block cursor-pointer"></canvas>
+    <!-- Modal: Final Game Ending & Science Summary -->
+    <div id="ending-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel max-w-xl w-full rounded-2xl border border-cyan-500/50 p-6 sm:p-8 flex flex-col justify-between shadow-2xl my-8">
+            <div class="text-center">
+                <div id="ending-icon-container" class="w-20 h-20 rounded-3xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 mx-auto flex items-center justify-center text-4xl mb-4 glow-cyan">
+                    <i id="ending-icon" class="fa-solid fa-earth-asia"></i>
+                </div>
+                
+                <span id="ending-badge" class="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-800 inline-block mb-3">
+                    🟢 HAPPY ENDING - 2050년 미션 성공
+                </span>
+                <h2 id="ending-title" class="text-2xl font-extrabold text-white mb-3">탄소중립 미래도시 완성!</h2>
+                <p id="ending-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
+                    축하합니다! 에너지 장관단의 명확한 비전 덕분에 지구가 1.5℃의 임계점을 넘지 않고, 2050년까지 안정적인 친환경 전력을 공급받게 되었습니다.
+                </p>
 
-      <!-- Floating Stats & Focus Overlay -->
-      <div class="absolute top-3 left-3 right-3 flex flex-wrap justify-between items-center gap-2 pointer-events-none">
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="bg-[#181825]/90 backdrop-blur border border-[#313244] px-3 py-1 rounded-full text-xs text-slate-300 font-mono shadow-lg">
-            <span class="text-slate-400">충돌:</span>
-            <span id="bounceCountText" class="font-bold text-sky-400">0</span>
-          </div>
-          <div class="bg-[#181825]/90 backdrop-blur border border-[#313244] px-3 py-1 rounded-full text-xs text-slate-300 font-mono shadow-lg">
-            <span class="text-slate-400">전체 공:</span>
-            <span id="ballCountText" class="font-bold text-indigo-400">1개</span>
-          </div>
-        </div>
-        
-        <!-- Focused Selected Ball Info Badge -->
-        <div class="bg-[#181825]/90 backdrop-blur border border-sky-500/40 px-3 py-1 rounded-full text-xs font-mono shadow-lg flex items-center gap-2">
-          <i class="fa-solid fa-bullseye text-sky-400"></i>
-          <span id="focusStatusBadge" class="text-sky-300 font-semibold">선택된 공: #1</span>
-        </div>
-      </div>
+                <!-- Science Key Summary Cards -->
+                <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-left mb-6">
+                    <h4 class="text-xs font-bold text-cyan-400 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-book-bookmark"></i> 이번 학기 학습한 과학 개념 요약 리포트
+                    </h4>
+                    <div class="space-y-2 text-xs text-slate-300">
+                        <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                            <strong>• 화학 반응과 에너지:</strong> 수소 연료전지의 화학 반응을 활용해 탄소 배출 없이 지속 가능한 전력을 얻었습니다.
+                        </div>
+                        <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                            <strong>• 기권과 날씨:</strong> 화석연료 배출 억제로 지구 온실효과에 따른 이상 기후(폭염/폭우) 위험을 방지했습니다.
+                        </div>
+                        <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                            <strong>• 에너지 전환과 보존:</strong> 태양/풍력/수력의 빛·운동·위치 에너지를 전기 에너지로 효율적으로 보존 관리했습니다.
+                        </div>
+                    </div>
+                </div>
 
+                <!-- 디지털 학습지 연결 안내 버튼 -->
+                <div class="mb-6">
+                    <button onclick="openWorksheetFromEnding()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-sm transition shadow-lg flex items-center justify-center gap-2 glow-purple">
+                        <i class="fa-solid fa-file-signature text-base"></i>
+                        <span>📝 수업 마무리 디지털 학습지 작성 & 제출하기</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="restartGame()" class="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition">
+                    🔄 다시 시뮬레이션 시작하기
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Control Panel -->
-    <div class="w-full max-w-3xl flex flex-col gap-4 bg-[#181825] border border-[#313244] p-4 rounded-xl shadow-lg">
-      
-      <!-- SECTION A: Setup Mode Specific Bar (Shown in Setup Tab) -->
-      <div id="setupControlsGroup" class="hidden flex flex-col gap-3 pb-3 border-b border-[#313244]">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-            <i class="fa-solid fa-hand-pointer"></i>
-            <span>수동 드래그 설정 (공 위치 및 속도 벡터 화살표 드래그)</span>
-          </div>
-          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-            <input type="checkbox" id="toggleGridCheckbox" checked class="rounded border-[#313244] text-sky-500 focus:ring-0">
-            <span>좌표격자 표시</span>
-          </label>
+    <!-- Modal: ⚙️ Teacher Admin Quiz Manager Modal (교사 전용 퀴즈 관리자) -->
+    <div id="admin-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel max-w-3xl w-full rounded-2xl border border-amber-500/50 p-6 sm:p-8 flex flex-col justify-between shadow-2xl my-8">
+            
+            <div>
+                <!-- Admin Header -->
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold text-xl">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                교사 전용 관리자 센터 & 학생 제출함
+                            </h2>
+                            <p class="text-xs text-amber-300/80">퀴즈/학습지 문항 커스텀 설정 및 학생 제출 결과를 관리합니다.</p>
+                        </div>
+                    </div>
+                    <button onclick="closeTeacherAdmin()" class="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Admin Tab Navigation Buttons -->
+                <div class="flex border-b border-slate-800 mb-6 gap-2">
+                    <button id="tab-btn-quiz" onclick="switchAdminTab('quiz')" class="px-4 py-2 text-xs font-bold rounded-t-xl bg-amber-500 text-slate-950 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-gamepad"></i> ⚙️ 돌발 퀴즈 설정
+                    </button>
+                    <button id="tab-btn-worksheet" onclick="switchAdminTab('worksheet')" class="px-4 py-2 text-xs font-bold rounded-t-xl bg-slate-900 text-slate-400 hover:text-white transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square"></i> 📝 학습지 문항 설정
+                    </button>
+                    <button id="tab-btn-submissions" onclick="switchAdminTab('submissions')" class="px-4 py-2 text-xs font-bold rounded-t-xl bg-slate-900 text-slate-400 hover:text-white transition flex items-center gap-1.5 relative">
+                        <i class="fa-solid fa-inbox"></i> 📥 제출 결과 보기
+                        <span id="badge-submission-count" class="px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 font-extrabold text-[10px]">0</span>
+                    </button>
+                </div>
+
+                <!-- TAB 1: Quiz Config Panel -->
+                <div id="admin-panel-quiz">
+                    <!-- Admin Export Banner -->
+                    <div class="p-4 rounded-xl bg-amber-950/40 border border-amber-500/30 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="text-xs text-amber-200">
+                            <strong class="block font-bold text-white text-sm mb-0.5">📦 학생 배포 가이드</strong>
+                            수정한 설정이 포함된 독립실행형 HTML 파일을 새로 추출하여 배포할 수 있습니다.
+                        </div>
+                        <button onclick="exportCustomHTML()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:opacity-95 text-slate-950 font-extrabold text-xs transition shadow-md whitespace-nowrap flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> 배포용 HTML 다운로드
+                        </button>
+                    </div>
+
+                    <!-- Quiz Input Form Section -->
+                    <div class="glass-card p-4 rounded-xl mb-6 border border-slate-800">
+                        <h3 id="admin-form-title" class="text-xs font-bold text-cyan-400 mb-3 flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle"></i> 새 퀴즈 추가하기
+                        </h3>
+                        
+                        <input type="hidden" id="edit-quiz-index" value="-1">
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-300 mb-1">단원/주제 이름</label>
+                                <input type="text" id="quiz-input-unit" placeholder="예: 화학 반응과 에너지" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-300 mb-1">정답 번호 선택</label>
+                                <select id="quiz-input-answer" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-500">
+                                    <option value="0">1번 보기 정답</option>
+                                    <option value="1">2번 보기 정답</option>
+                                    <option value="2">3번 보기 정답</option>
+                                    <option value="3">4번 보기 정답</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="block text-[11px] font-bold text-slate-300 mb-1">퀴즈 질문 (문제)</label>
+                            <input type="text" id="quiz-input-question" placeholder="예: 수소 연료전지 반응의 종류로 올바른 것은?" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-cyan-500">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                            <input type="text" id="quiz-input-opt0" placeholder="1번 보기 텍스트" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200">
+                            <input type="text" id="quiz-input-opt1" placeholder="2번 보기 텍스트" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200">
+                            <input type="text" id="quiz-input-opt2" placeholder="3번 보기 텍스트" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200">
+                            <input type="text" id="quiz-input-opt3" placeholder="4번 보기 텍스트" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="block text-[11px] font-bold text-slate-300 mb-1">정답 해설 (과학 원리 설명)</label>
+                            <input type="text" id="quiz-input-explanation" placeholder="예: 수소와 산소가 결합할 때 전기에너지를 방출하는 발열 반응입니다." class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-cyan-500">
+                        </div>
+
+                        <div class="flex gap-2 justify-end">
+                            <button onclick="cancelAdminForm()" id="btn-cancel-edit" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition">취소</button>
+                            <button onclick="saveAdminQuiz()" class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-extrabold transition">💾 퀴즈 저장하기</button>
+                        </div>
+                    </div>
+
+                    <!-- Active Quizzes List -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-list-check text-amber-400"></i> 등록된 퀴즈 리스트 (<span id="admin-quiz-count">0</span>개)
+                            </h3>
+                            <button onclick="resetToDefaultQuizzes()" class="text-[11px] text-rose-400 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-rotate-left"></i> 기본 퀴즈 세트로 초기화
+                            </button>
+                        </div>
+
+                        <div id="admin-quiz-list-container" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            <!-- 동적 퀴즈 목록 생성 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Worksheet Question Config Panel -->
+                <div id="admin-panel-worksheet" class="hidden">
+                    <div class="glass-card p-4 rounded-xl mb-4 border border-purple-500/30">
+                        <h3 class="text-xs font-bold text-purple-400 mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-pen"></i> Part 2 서술형 문항 제목 직접 편집하기
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mb-4">선생님 수업 요구에 맞게 서술형 질문 내용을 입력하시면 학생들 학습지에 즉시 반영됩니다.</p>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-cyan-300 mb-1">문항 Q1 질문 제목</label>
+                                <textarea id="cfg-ws-q1" rows="2" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-purple-300 mb-1">문항 Q2 질문 제목</label>
+                                <textarea id="cfg-ws-q2" rows="2" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-300 mb-1">문항 Q3 질문 제목</label>
+                                <textarea id="cfg-ws-q3" rows="2" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex justify-end gap-2">
+                            <button onclick="saveWorksheetQuestionConfig()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow">
+                                💾 학습지 질문 문항 저장하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Student Submissions Panel -->
+                <div id="admin-panel-submissions" class="hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-inbox text-emerald-400"></i> 제출된 학습지 현황 목록 (<span id="submission-count-text">0</span>개 제출됨)
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="exportSubmissionsCSV()" class="px-3 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-[11px] font-bold transition flex items-center gap-1">
+                                <i class="fa-solid fa-file-csv"></i> 제출결과 전체 텍스트/CSV 다운로드
+                            </button>
+                            <button onclick="clearAllSubmissions()" class="px-3 py-1.5 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[11px] font-bold transition">
+                                제출함 초기화
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="submissions-list-container" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                        <!-- 제출 데이터 동적 카드 목록 생성 -->
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-800 flex justify-between items-center">
+                <span class="text-[11px] text-slate-500">💡 설정 저장은 브라우저에 자동 보존되며 배포 파일 추출에 포함됩니다.</span>
+                <button onclick="closeTeacherAdmin()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition">
+                    닫기
+                </button>
+            </div>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="addStoppedBallBtn" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-circle-pause text-amber-300"></i>
-            <span>정지 공 생성 (드래그 배치용)</span>
-          </button>
-          
-          <button id="launchBallBtn" class="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-rocket"></i>
-            <span>선택 공 발사 / 일시정지</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- SECTION B: Focused / Selected Ball Controls -->
-      <div class="flex flex-col gap-2 pb-3 border-b border-[#313244]">
-        <div class="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wider">
-          <i class="fa-solid fa-crosshairs"></i>
-          <span>🎯 선택된 공 개별 조작 (초점 제어)</span>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Focused Ball: Reverse Direction -->
-          <button id="focusReverseBtn" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            <span>방향 전환</span>
-          </button>
-
-          <!-- Focused Ball: Freeze / Resume -->
-          <button id="focusStopBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
-            <i id="focusStopIcon" class="fa-solid fa-circle-stop"></i>
-            <span id="focusStopText">정지 / 재개</span>
-          </button>
-
-          <!-- Focused Ball: Remove -->
-          <button id="focusDeleteBtn" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-trash-can"></i>
-            <span>제거</span>
-          </button>
-        </div>
-
-        <!-- Focused Ball Individual Speed Slider -->
-        <div class="flex items-center justify-between gap-4 pt-1">
-          <div class="flex items-center gap-2 text-xs text-sky-300 font-medium">
-            <i class="fa-solid fa-gauge text-sky-400"></i>
-            <span>선택 공 속도</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <input type="range" id="focusSpeedSlider" min="0" max="25" value="5" step="1" class="w-32 md:w-44">
-            <span id="focusSpeedValBadge" class="text-xs font-mono font-bold text-sky-400 w-20 text-right">0.0 cm/s</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECTION C: Global Controls Row -->
-      <div class="flex flex-wrap items-center justify-between gap-2.5">
-        
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Add Ball Button -->
-          <button id="addBallBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-plus"></i>
-            <span>공 추가</span>
-          </button>
-
-          <!-- Color Change Button -->
-          <button id="colorBtn" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-palette"></i>
-            <span>전체 색상 변경</span>
-          </button>
-
-          <!-- Reverse All Direction Button -->
-          <button id="reverseAllBtn" class="px-3 py-1.5 rounded-lg bg-[#313244] hover:bg-[#45475a] text-slate-200 font-semibold text-xs transition active:scale-95 flex items-center gap-1.5">
-            <i class="fa-solid fa-shuffle"></i>
-            <span>전체 방향 반전</span>
-          </button>
-        </div>
-
-        <!-- Global Simulation Controls -->
-        <div class="flex items-center gap-2">
-          <button id="playPauseBtn" class="px-3 py-1.5 rounded-lg bg-[#313244] hover:bg-[#45475a] text-slate-200 text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
-            <i id="playPauseIcon" class="fa-solid fa-pause"></i>
-            <span id="playPauseText">일시정지</span>
-          </button>
-          <button id="resetBtn" class="px-3 py-1.5 rounded-lg bg-[#313244] hover:bg-[#45475a] text-slate-200 text-xs font-semibold transition active:scale-95 flex items-center gap-1.5" title="초기화">
-            <i class="fa-solid fa-rotate-right"></i>
-            <span>초기화</span>
-          </button>
-        </div>
-
-      </div>
-
-      <!-- Speed Slider -->
-      <div class="flex items-center justify-between gap-4 pt-2 border-t border-[#313244]">
-        <div class="flex items-center gap-2 text-xs text-slate-300 font-medium">
-          <i class="fa-solid fa-gauge-high text-amber-400"></i>
-          <span>전체 이동 속도 조절</span>
-        </div>
-        <div class="flex items-center gap-3">
-          <input type="range" id="speedSlider" min="1" max="25" value="5" step="1" class="w-36 md:w-48">
-          <span id="speedValBadge" class="text-xs font-mono font-bold text-emerald-400 w-24 text-right">7.9 cm/s</span>
-        </div>
-      </div>
-
     </div>
 
-    <!-- User Guide Hint -->
-    <p id="guideHint" class="text-xs text-slate-400 flex items-center justify-center gap-1.5 text-center">
-      <i class="fa-solid fa-hand-pointer text-sky-400"></i>
-      공을 클릭하여 선택하거나 빈 공간을 클릭하여 공을 추가할 수 있습니다.
-    </p>
+    <!-- Modal: 📝 Digital Student Worksheet (디지털 제출용 학습지 모달) -->
+    <div id="worksheet-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel max-w-3xl w-full rounded-2xl border border-purple-500/50 p-6 sm:p-8 flex flex-col justify-between shadow-2xl my-8">
+            
+            <div>
+                <!-- Worksheet Header -->
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/40 flex items-center justify-center font-bold text-xl">
+                            <i class="fa-solid fa-file-signature"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                📝 2050년 미래도시 프로젝트 활동 학습지
+                            </h2>
+                            <p class="text-xs text-purple-300/80">중3 과학 8단원 과학기술과 인류문명 단원 연계 종합 정리</p>
+                        </div>
+                    </div>
+                    <button onclick="closeWorksheetModal()" class="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
 
-  </div>
+                <!-- Group Info Section -->
+                <div class="glass-card p-4 rounded-xl mb-6 border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-300 mb-1">팀/모둠 이름 *</label>
+                        <input type="text" id="ws-team-name" placeholder="예: 1모둠 퀀텀파워" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-bold text-slate-300 mb-1">모둠원 성명 및 역할 분담 *</label>
+                        <input type="text" id="ws-members" placeholder="예: 김철수(CEO), 이영희(CCO), 박민수(CTO)" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
 
-  <!-- JavaScript Simulation Logic -->
-  <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+                <!-- Section 1: Science Quizzes Review -->
+                <div class="glass-card p-4 rounded-xl mb-6 border border-slate-800">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-800/80 pb-2">
+                        <h3 class="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-square-check"></i> Part 1. 교사 구성 단원별 핵심 문제
+                        </h3>
+                        <span class="text-[10px] text-slate-400">선생님이 제시한 단원 문제를 풀고 답을 입력하세요.</span>
+                    </div>
 
-    // UI Element References - Tabs
-    const tabFreeMode = document.getElementById('tabFreeMode');
-    const tabSetupMode = document.getElementById('tabSetupMode');
-    const setupControlsGroup = document.getElementById('setupControlsGroup');
-    const toggleGridCheckbox = document.getElementById('toggleGridCheckbox');
-    const addStoppedBallBtn = document.getElementById('addStoppedBallBtn');
-    const launchBallBtn = document.getElementById('launchBallBtn');
-    const guideHint = document.getElementById('guideHint');
+                    <div id="worksheet-custom-problems-container" class="space-y-4">
+                        <!-- 선생님의 구성 문제(1번 문제 세트 등)가 들어가는 영역 -->
+                    </div>
+                </div>
 
-    // UI Element References - Controls
-    const focusReverseBtn = document.getElementById('focusReverseBtn');
-    const focusStopBtn = document.getElementById('focusStopBtn');
-    const focusStopIcon = document.getElementById('focusStopIcon');
-    const focusStopText = document.getElementById('focusStopText');
-    const focusDeleteBtn = document.getElementById('focusDeleteBtn');
-    const focusSpeedSlider = document.getElementById('focusSpeedSlider');
-    const focusSpeedValBadge = document.getElementById('focusSpeedValBadge');
+                <!-- Section 2: Exploration & Reflection Essay Questions -->
+                <div class="glass-card p-4 rounded-xl mb-6 border border-slate-800 space-y-4">
+                    <div class="border-b border-slate-800/80 pb-2">
+                        <h3 class="text-xs font-bold text-purple-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-comments"></i> Part 2. 탐구 활동 성찰 및 인류 문명 방향성 토론
+                        </h3>
+                    </div>
 
-    const addBallBtn = document.getElementById('addBallBtn');
-    const colorBtn = document.getElementById('colorBtn');
-    const reverseAllBtn = document.getElementById('reverseAllBtn');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const playPauseIcon = document.getElementById('playPauseIcon');
-    const playPauseText = document.getElementById('playPauseText');
-    const resetBtn = document.getElementById('resetBtn');
+                    <div>
+                        <label id="lbl-ws-q1" class="block text-xs font-bold text-slate-200 mb-1">
+                            Q1. 시뮬레이션 중 우리 모둠이 가장 중점적으로 선택한 에너지 발전 방식과 그 과학적 이유(장단점)는 무엇이었나요?
+                        </label>
+                        <textarea id="ws-q1" rows="2" placeholder="답변을 적어주세요..." class="w-full p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
 
-    const speedSlider = document.getElementById('speedSlider');
-    const speedValBadge = document.getElementById('speedValBadge');
-    const bounceCountText = document.getElementById('bounceCountText');
-    const ballCountText = document.getElementById('ballCountText');
-    const focusStatusBadge = document.getElementById('focusStatusBadge');
+                    <div>
+                        <label id="lbl-ws-q2" class="block text-xs font-bold text-slate-200 mb-1">
+                            Q2. 지속 가능한 인류 문명의 발전을 위해 과학기술이 해결해야 할 가장 중요한 과제는 무엇이라고 생각하나요?
+                        </label>
+                        <textarea id="ws-q2" rows="2" placeholder="답변을 적어주세요..." class="w-full p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
 
-    // State Variables
-    let currentTab = 'free'; // 'free' or 'setup'
-    let showGrid = true;
-    let isRunning = true;
-    let bounceCount = 0;
-    let ballIdCounter = 1;
-    let selectedBallId = null;
-    const maxTrailLength = 14;
+                    <div>
+                        <label id="lbl-ws-q3" class="block text-xs font-bold text-slate-200 mb-1">
+                            Q3. 오늘 수업을 마친 후 느낀 점과 나의 일상 속 탄소 중립 실천 다짐 한 마디!
+                        </label>
+                        <textarea id="ws-q3" rows="2" placeholder="답변을 적어주세요..." class="w-full p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+                </div>
 
-    // Dragging state for setup mode
-    let isDraggingBall = false;
-    let isDraggingVector = false;
-    let draggedBall = null;
+            </div>
 
-    // Speed unit conversion factor (Standard 96 DPI: 1 px ≈ 0.0264583 cm)
-    const PX_TO_CM_PER_SEC = 60 * 0.0264583;
-    const VECTOR_SCALE = 12; // Visual multiplier for velocity vector arrow
+            <!-- Submit & Export Buttons -->
+            <div class="mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span class="text-[11px] text-slate-400">💡 작성 완료 후 제출 버튼을 누르면 선생님 제출함으로 전달됩니다.</span>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                    <button onclick="submitWorksheet()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:opacity-95 text-slate-950 font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-lg glow-green">
+                        <i class="fa-solid fa-paper-plane"></i> 🚀 최종 학습지 제출하기
+                    </button>
+                    <button onclick="copyWorksheetToClipboard()" class="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-purple-600/80 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-copy"></i> 복사
+                    </button>
+                    <button onclick="printWorksheet()" class="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-500 text-white font-bold text-xs transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-print"></i> 인쇄
+                    </button>
+                    <button onclick="closeWorksheetModal()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // Array holding all active ball objects
-    let balls = [];
+    <!-- Notification Toast Box -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div id="toast-body" class="px-5 py-3 rounded-xl glass-panel border border-cyan-500/40 text-cyan-300 font-semibold text-xs sm:text-sm shadow-xl flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-cyan-400"></i>
+            <span id="toast-message">알림 메시지</span>
+        </div>
+    </div>
 
-    // Helper: Create single ball object
-    function createBall(x, y, radius = 16, isStopped = false, hue = null) {
-      const currentSpeed = parseFloat(speedSlider.value);
-      const angle = Math.random() * Math.PI * 2;
-      const initialDx = isStopped ? 0 : Math.cos(angle) * currentSpeed;
-      const initialDy = isStopped ? 0 : Math.sin(angle) * currentSpeed;
-      
-      return {
-        id: ballIdCounter++,
-        x: x,
-        y: y,
-        radius: radius,
-        dx: initialDx,
-        dy: initialDy,
-        isStopped: isStopped,
-        savedDx: Math.cos(angle) * currentSpeed,
-        savedDy: Math.sin(angle) * currentSpeed,
-        hue: hue !== null ? hue : Math.floor(Math.random() * 360),
-        trail: []
-      };
-    }
+    <!-- Application Simulation Script -->
+    <script>
+        // Game State Variables
+        const YEARS = [2026, 2030, 2040, 2050];
+        let currentRoundIdx = 0;
 
-    // Canvas Resize Handling
-    function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
+        let gameState = {
+            powerDemand: 100, // GW needed
+            powerSupply: 100, // GW current
+            tempRise: 0.80,   // degrees C
+            budget: 120,      // billion won
+            approval: 85,     // %
+            plants: {
+                coal: 1,
+                renewable: 1,
+                hydrogen: 1,
+                hydro: 0
+            },
+            skillsUsed: {
+                CEO: false,
+                CCO: false,
+                CTO: false,
+                CSO: false
+            },
+            weatherEfficiency: 1.0, // solar multiplier
+            ctoBonus: 1.0           // renewable multiplier from CTO
+        };
 
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
+        const PLANT_SPECS = {
+            coal: { name: '화력 발전소', cost: 20, power: 40, temp: 0.15 },
+            renewable: { name: '태양광&풍력', cost: 30, power: 25, temp: 0.00 },
+            hydrogen: { name: '수소 연료전지', cost: 40, power: 35, temp: 0.00 },
+            hydro: { name: '수력/조력', cost: 25, power: 20, temp: 0.00 }
+        };
 
-      const displayWidth = rect.width;
-      const displayHeight = rect.height;
-
-      // Keep balls within canvas visible bounds
-      balls.forEach(ball => {
-        if (ball.x + ball.radius > displayWidth) ball.x = displayWidth - ball.radius;
-        if (ball.x - ball.radius < 0) ball.x = ball.radius;
-        if (ball.y + ball.radius > displayHeight) ball.y = displayHeight - ball.radius;
-        if (ball.y - ball.radius < 0) ball.y = ball.radius;
-      });
-    }
-
-    // Update Speed Badge UI Display
-    function updateSpeedDisplay() {
-      const speedPx = parseFloat(speedSlider.value);
-      const speedCmSec = (speedPx * PX_TO_CM_PER_SEC).toFixed(1);
-      speedValBadge.textContent = `${speedCmSec} cm/s`;
-    }
-
-    // Update Selected Ball Info Display
-    function updateFocusStatusUI() {
-      const focusedBall = balls.find(b => b.id === selectedBallId);
-      if (!focusedBall) {
-        focusStatusBadge.textContent = "선택된 공: 없음";
-        focusStatusBadge.className = "text-slate-400 font-semibold";
-        focusStopText.textContent = "정지 / 재개";
-        focusSpeedSlider.disabled = true;
-        focusSpeedValBadge.textContent = "0.0 cm/s";
-        return;
-      }
-
-      focusSpeedSlider.disabled = false;
-      const currentSpeedPx = focusedBall.isStopped
-        ? Math.hypot(focusedBall.savedDx, focusedBall.savedDy)
-        : Math.hypot(focusedBall.dx, focusedBall.dy);
-      
-      focusSpeedSlider.value = Math.round(currentSpeedPx);
-      const speedCmSec = (currentSpeedPx * PX_TO_CM_PER_SEC).toFixed(1);
-      focusSpeedValBadge.textContent = `${speedCmSec} cm/s`;
-
-      focusStatusBadge.className = "text-sky-300 font-semibold";
-      if (focusedBall.isStopped) {
-        focusStatusBadge.textContent = `선택된 공: #${focusedBall.id} (정지/대기중)`;
-        focusStopText.textContent = "발사 (재개)";
-        focusStopIcon.className = "fa-solid fa-circle-play";
-      } else {
-        focusStatusBadge.textContent = `선택된 공: #${focusedBall.id} (${speedCmSec} cm/s)`;
-        focusStopText.textContent = "정지";
-        focusStopIcon.className = "fa-solid fa-circle-stop";
-      }
-    }
-
-    // Reset Scene
-    function resetSimulation() {
-      const rect = canvas.getBoundingClientRect();
-      const initialBall = createBall(rect.width / 2, rect.height / 2, 16, currentTab === 'setup', 200);
-      balls = [initialBall];
-      selectedBallId = initialBall.id;
-      bounceCount = 0;
-      bounceCountText.textContent = '0';
-      ballCountText.textContent = '1개';
-      updateSpeedDisplay();
-      updateFocusStatusUI();
-    }
-
-    // Add a new ball
-    function addNewBall(spawnX = null, spawnY = null, forceStopped = false) {
-      const rect = canvas.getBoundingClientRect();
-      const radius = 16;
-      let x = spawnX;
-      let y = spawnY;
-
-      if (x === null || y === null) {
-        let attempts = 0;
-        let safe = false;
-        while (!safe && attempts < 50) {
-          x = radius + Math.random() * (rect.width - 2 * radius);
-          y = radius + Math.random() * (rect.height - 2 * radius);
-          safe = balls.every(b => Math.hypot(b.x - x, b.y - y) >= b.radius + radius + 4);
-          attempts++;
-        }
-      }
-
-      const isStopped = forceStopped || (currentTab === 'setup');
-      const newBall = createBall(x, y, radius, isStopped);
-      balls.push(newBall);
-      selectedBallId = newBall.id;
-      ballCountText.textContent = `${balls.length}개`;
-      updateFocusStatusUI();
-    }
-
-    // Tab Switching Logic
-    function setTab(mode) {
-      currentTab = mode;
-      if (mode === 'free') {
-        tabFreeMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-sky-600 text-white shadow-md";
-        tabSetupMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-[#313244] text-slate-300 hover:text-white";
-        setupControlsGroup.classList.add('hidden');
-        guideHint.innerHTML = '<i class="fa-solid fa-hand-pointer text-sky-400"></i> 공을 클릭하여 초점을 맞추거나 빈 공간을 클릭하여 공을 즉시 생성합니다.';
-      } else {
-        tabSetupMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-sky-600 text-white shadow-md";
-        tabFreeMode.className = "flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 bg-[#313244] text-slate-300 hover:text-white";
-        setupControlsGroup.classList.remove('hidden');
-        guideHint.innerHTML = '<i class="fa-solid fa-up-down-left-right text-amber-400"></i> <b>수동 설정</b>: 공 본체를 드래그하여 위치 이동, 화살표 끝점을 드래그하여 초기 속도/방향을 지정하세요!';
-      }
-    }
-
-    // Draw Coordinate Grid & Origin Axis
-    function drawCoordinateGrid() {
-      if (!showGrid && currentTab !== 'setup') return;
-
-      const rect = canvas.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-      const centerX = Math.round(width / 2);
-      const centerY = Math.round(height / 2);
-
-      ctx.save();
-      ctx.lineWidth = 1;
-
-      // 1. Grid Lines (40px Grid)
-      const gridSize = 40;
-      ctx.strokeStyle = '#262738';
-      ctx.fillStyle = '#6c7086';
-      ctx.font = '9px monospace';
-
-      // Vertical Grid Lines
-      for (let x = centerX % gridSize; x < width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-
-      // Horizontal Grid Lines
-      for (let y = centerY % gridSize; y < height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-
-      // 2. Main Axes (X & Y Axis)
-      ctx.strokeStyle = '#45475a';
-      ctx.lineWidth = 2;
-
-      // X-Axis
-      ctx.beginPath();
-      ctx.moveTo(0, centerY);
-      ctx.lineTo(width, centerY);
-      ctx.stroke();
-
-      // Y-Axis
-      ctx.beginPath();
-      ctx.moveTo(centerX, 0);
-      ctx.lineTo(centerX, height);
-      ctx.stroke();
-
-      // 3. Origin Point (0,0) Marker
-      ctx.fillStyle = '#f38ba8';
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Origin Label
-      ctx.fillStyle = '#cdd6f4';
-      ctx.fillText('(0,0)', centerX + 6, centerY - 6);
-      ctx.fillText('X축', width - 25, centerY - 6);
-      ctx.fillText('Y축', centerX + 6, 12);
-
-      ctx.restore();
-    }
-
-    // Draw Velocity Direction Vector Handle (For Setup / Focused Ball)
-    function drawVelocityVector(ball) {
-      const vx = ball.isStopped ? ball.savedDx : ball.dx;
-      const vy = ball.isStopped ? ball.savedDy : ball.dy;
-      const speed = Math.hypot(vx, vy);
-
-      const endX = ball.x + vx * VECTOR_SCALE;
-      const endY = ball.y + vy * VECTOR_SCALE;
-
-      ctx.save();
-      // Line
-      ctx.beginPath();
-      ctx.moveTo(ball.x, ball.y);
-      ctx.lineTo(endX, endY);
-      ctx.strokeStyle = '#f59e0b'; // Amber arrow
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      // Arrow Head
-      const angle = Math.atan2(vy, vx);
-      const headLen = 10;
-      ctx.beginPath();
-      ctx.moveTo(endX, endY);
-      ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
-      ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
-      ctx.fillStyle = '#f59e0b';
-      ctx.fill();
-
-      // Vector Tip Drag Handle Circle
-      ctx.beginPath();
-      ctx.arc(endX, endY, 6, 0, Math.PI * 2);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // 2D Elastic Collision Physics (Conservation of Momentum & Energy)
-    function resolveBallCollisions() {
-      const n = balls.length;
-      // Multi-pass constraint solver for physical stability
-      const iterations = 4;
-      for (let iter = 0; iter < iterations; iter++) {
-        for (let i = 0; i < n; i++) {
-          for (let j = i + 1; j < n; j++) {
-            const b1 = balls[i];
-            const b2 = balls[j];
-
-            const dx = b2.x - b1.x;
-            const dy = b2.y - b1.y;
-            const dist = Math.hypot(dx, dy);
-            const minDist = b1.radius + b2.radius;
-
-            if (dist < minDist && dist > 0) {
-              const nx = dx / dist;
-              const ny = dy / dist;
-              const overlap = minDist - dist;
-
-              // Mass calculation proportional to sphere area (m = r^2)
-              const m1 = b1.isStopped ? 1e9 : (b1.radius * b1.radius);
-              const m2 = b2.isStopped ? 1e9 : (b2.radius * b2.radius);
-
-              // Positional de-overlapping weighted by inverse mass
-              const invM1 = b1.isStopped ? 0 : 1 / m1;
-              const invM2 = b2.isStopped ? 0 : 1 / m2;
-              const invMassSum = invM1 + invM2;
-
-              if (invMassSum > 0) {
-                b1.x -= nx * overlap * (invM1 / invMassSum);
-                b1.y -= ny * overlap * (invM1 / invMassSum);
-                b2.x += nx * overlap * (invM2 / invMassSum);
-                b2.y += ny * overlap * (invM2 / invMassSum);
-              }
-
-              // Relative velocity vector (v1 - v2)
-              const rvx = b1.dx - b2.dx;
-              const rvy = b1.dy - b2.dy;
-              const velAlongNormal = rvx * nx + rvy * ny;
-
-              // Resolve impulse only if balls are moving toward each other
-              if (velAlongNormal > 0 && iter === 0) {
-                const impulse = (2 * velAlongNormal) / (m1 + m2);
-
-                if (!b1.isStopped) {
-                  b1.dx -= impulse * m2 * nx;
-                  b1.dy -= impulse * m2 * ny;
-                }
-                if (!b2.isStopped) {
-                  b2.dx += impulse * m1 * nx;
-                  b2.dy += impulse * m1 * ny;
-                }
-
-                bounceCount++;
-                bounceCountText.textContent = bounceCount.toLocaleString();
-              }
+        const SCIENCE_EVENTS = [
+            {
+                title: "장마철 먹구름 유입!",
+                icon: "fa-cloud-showers-heavy",
+                desc: "기권과 날씨 단원: 수증기 응결로 먹구름 떼가 도시를 덮었습니다. 태양광 발전 효율이 50% 급감합니다!",
+                effectText: "태양광 효율 50% 감소",
+                apply: () => { gameState.weatherEfficiency = 0.5; }
+            },
+            {
+                title: "태양 극대기 우주 날씨 폭풍!",
+                icon: "fa-sun",
+                desc: "별과 우주 단원: 태양 흑점 폭발로 인한 우주 정전기 여파로 송전망 손실이 발생했습니다.",
+                effectText: "전체 공급 전력 -15 GW",
+                apply: () => { gameState.powerSupply = Math.max(0, gameState.powerSupply - 15); }
+            },
+            {
+                title: "수소 촉매 기술 혁신!",
+                icon: "fa-flask-vial",
+                desc: "화학 반응 단원: 백금 대체 친환경 수소 촉매 개발 성공으로 수소 발전 효율이 급상승합니다!",
+                effectText: "수소 발전기당 전력 +10 GW 추가",
+                apply: () => { gameState.powerSupply += (gameState.plants.hydrogen * 10); }
+            },
+            {
+                title: "초대형 폭염 경보 발생!",
+                icon: "fa-temperature-arrow-up",
+                desc: "기권과 날씨 단원: 지구 온난화로 인한 냉방 전력 수요가 폭증합니다!",
+                effectText: "도시 요구 전력 +30 GW 급증",
+                apply: () => { gameState.powerDemand += 30; }
             }
-          }
-        }
-      }
-    }
+        ];
 
-    // Draw 3D Shaded Ball
-    function draw3DBall(x, y, radius, hue, alpha = 1) {
-      ctx.save();
-      ctx.globalAlpha = alpha;
-
-      const highlightX = x - radius * 0.35;
-      const highlightY = y - radius * 0.35;
-      const gradient = ctx.createRadialGradient(
-        highlightX, highlightY, radius * 0.08,
-        x, y, radius
-      );
-
-      gradient.addColorStop(0, `hsl(${hue}, 100%, 88%)`);
-      gradient.addColorStop(0.45, `hsl(${hue}, 85%, 55%)`);
-      gradient.addColorStop(0.9, `hsl(${hue}, 90%, 30%)`);
-      gradient.addColorStop(1, `hsl(${hue}, 95%, 20%)`);
-
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = gradient;
-      
-      ctx.shadowColor = `hsl(${hue}, 90%, 55%)`;
-      ctx.shadowBlur = radius * 0.4;
-
-      ctx.fill();
-      ctx.closePath();
-      ctx.restore();
-    }
-
-    // Draw Glowing Focus Selection Ring
-    function drawSelectionRing(ball) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 4]);
-      ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 12;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // Draw Motion Trail
-    function drawTrail(ball) {
-      if (ball.isStopped) return;
-      const len = ball.trail.length;
-      for (let i = 0; i < len; i++) {
-        const point = ball.trail[i];
-        const ratio = (i + 1) / len;
-        const currentRadius = ball.radius * (0.35 + 0.65 * ratio);
-        const alpha = ratio * 0.35;
-        draw3DBall(point.x, point.y, currentRadius, ball.hue, alpha);
-      }
-    }
-
-    // Update Physics Frame with Sub-stepping
-    function updatePhysics() {
-      const rect = canvas.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-
-      const subSteps = 2; // Sub-step physics calculation for high precision
-      for (let step = 0; step < subSteps; step++) {
-        balls.forEach(ball => {
-          if (ball.isStopped) return;
-
-          if (step === 0) {
-            ball.trail.push({ x: ball.x, y: ball.y });
-            if (ball.trail.length > maxTrailLength) {
-              ball.trail.shift();
+        // 기본 중3 과학 단원 통합 돌발 퀴즈 원본 데이터
+        const DEFAULT_SCIENCE_QUIZZES = [
+            {
+                unit: "화학 반응과 에너지",
+                question: "수소와 산소가 반응하여 물이 생성되면서 전기에너지를 발생하는 반응의 종류는?",
+                options: ["1) 발열 반응", "2) 흡열 반응", "3) 상태 변화", "4) 핵분열 반응"],
+                answer: 0,
+                explanation: "수소 연료전지는 화학 에너지를 전기와 열에너지로 방출하는 발열 반응입니다."
+            },
+            {
+                unit: "기권과 날씨",
+                question: "공기 덩어리가 단열 상승할 때 일어나는 변화로 올바른 순서는?",
+                options: ["1) 팽창 -> 기온 상승 -> 이슬점", "2) 팽창 -> 기온 강하 -> 응결", "3) 수축 -> 기온 강하 -> 응결", "4) 수축 -> 기온 상승 -> 이슬점"],
+                answer: 1,
+                explanation: "공기 상승 시 기압 감소로 단열 팽창하여 기온이 내려가 이슬점에 도달하면 응결이 일어납니다."
+            },
+            {
+                unit: "에너지 전환과 보존",
+                question: "태양광 발전기에서 일어나는 주요 에너지 전환 과정은?",
+                options: ["1) 운동에너지 -> 전기에너지", "2) 빛에너지 -> 전기에너지", "3) 열에너지 -> 화학에너지", "4) 위치에너지 -> 전기에너지"],
+                answer: 1,
+                explanation: "태양광 셀은 햇빛(빛에너지)을 직접 전기에너지로 전환합니다."
+            },
+            {
+                unit: "운동과 에너지",
+                question: "위치 에너지(Ep)와 운동 에너지(Ek)의 합인 역학적 에너지가 보존되는 조건은?",
+                options: ["1) 공기 저항과 마찰이 있을 때", "2) 공기 저항과 마찰을 무시할 때", "3) 항상 보존됨", "4) 속도가 일정할 때만"],
+                answer: 1,
+                explanation: "마찰이나 공기 저항이 없을 때 역학적 에너지의 총합은 일정하게 보존됩니다."
+            },
+            {
+                unit: "별과 우주",
+                question: "태양 표면의 흑점이 어둡게 보이는 이유는?",
+                options: ["1) 온도가 주변보다 낮아서", "2) 온도가 주변보다 높아서", "3) 빛이 완전히 흡수되어서", "4) 대기가 존재하지 않아서"],
+                answer: 0,
+                explanation: "흑점은 자기장에 의해 대류가 방해받아 주변보다 온도가 약 1500℃ 낮기 때문에 어둡게 보입니다."
             }
-          }
+        ];
 
-          ball.x += ball.dx / subSteps;
-          ball.y += ball.dy / subSteps;
+        let SCIENCE_QUIZZES = JSON.parse(JSON.stringify(DEFAULT_SCIENCE_QUIZZES));
 
-          let bounced = false;
+        let WORKSHEET_CONFIG = {
+            q1_title: "Q1. 시뮬레이션 중 우리 모둠이 가장 중점적으로 선택한 에너지 발전 방식과 그 과학적 이유(장단점)는 무엇이었나요?",
+            q2_title: "Q2. 지속 가능한 인류 문명의 발전을 위해 과학기술이 해결해야 할 가장 중요한 과제는 무엇이라고 생각하나요?",
+            q3_title: "Q3. 오늘 수업을 마친 후 느낀 점과 나의 일상 속 탄소 중립 실천 다짐 한 마디!"
+        };
 
-          if (ball.x + ball.radius >= width) {
-            ball.x = width - ball.radius;
-            ball.dx *= -1;
-            bounced = true;
-          } else if (ball.x - ball.radius <= 0) {
-            ball.x = ball.radius;
-            ball.dx *= -1;
-            bounced = true;
-          }
+        let userWorksheetAnswers = {};
 
-          if (ball.y + ball.radius >= height) {
-            ball.y = height - ball.radius;
-            ball.dy *= -1;
-            bounced = true;
-          } else if (ball.y - ball.radius <= 0) {
-            ball.y = ball.radius;
-            ball.dy *= -1;
-            bounced = true;
-          }
+        // 선생님 지정 맞춤형 학습지 문제 세트 데이터 (1번, 2번 문제 세트 등록)
+        let CUSTOM_WORKSHEET_PROBLEMS = [
+            {
+                id: 1,
+                unit: "[화학 반응과 에너지 변화]-[에너지 전환과 보존]",
+                mainTitle: "다음은 화력발전에 대한 설명이다. 빈칸에 들어갈 단어를 알맞게 고르시오.",
+                subQuestions: [
+                    {
+                        subId: "1-1",
+                        title: "1-1) 화력발전에서는 화석연료의 (       ) 반응을 이용한다.",
+                        type: "radio",
+                        options: ["① 연소", "② 분해", "③ 화합"]
+                    },
+                    {
+                        subId: "1-2",
+                        title: "1-2) 이 반응은 (       ) 반응이다.",
+                        type: "radio",
+                        options: ["① 발열", "② 흡열"]
+                    },
+                    {
+                        subId: "1-3",
+                        title: "1-3) 이 때 발생한 (   ㉠   )에너지는 발전기의 회전날개를 돌려 (   ㉡   )에너지로 전환된다.",
+                        type: "subjective",
+                        inputs: [
+                            { key: "1-3-A", label: "㉠", placeholder: "예: 열 (또는 운동)" },
+                            { key: "1-3-B", label: "㉡", placeholder: "예: 전기" }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 2,
+                unit: "[기권과 날씨]",
+                mainTitle: "2. 풍력발전량이 많아지려면 바람이 많이 불어야 한다. 따라서 풍력발전소는 해안가에 위치하는 경우가 많다. 이는 해안가에서 해륙풍이 불기 때문이다. 이는 육지와 바다의 비열 차이로 낮밤의 바람 방향이 바뀌어 부는 현상이다. 낮에는 (  ㉠  )가 고기압이 형성되고, 밤에는 (  ㉡  )가 고기압이 형성된다.",
+                subQuestions: [
+                    {
+                        subId: "2-1",
+                        title: "빈칸 ㉠과 ㉡에 들어갈 알맞은 단어(육지 / 바다)를 각각 입력하시오.",
+                        type: "subjective",
+                        inputs: [
+                            { key: "2-1-A", label: "낮의 고기압 (㉠)", placeholder: "예: 바다" },
+                            { key: "2-1-B", label: "밤의 고기압 (㉡)", placeholder: "예: 육지" }
+                        ]
+                    }
+                ]
+            }
+        ];
 
-          if (bounced && step === 0) {
-            bounceCount++;
-            bounceCountText.textContent = bounceCount.toLocaleString();
-          }
-        });
+        // 학생 제출 데이터 보존 배열
+        let STUDENT_SUBMISSIONS = [];
 
-        resolveBallCollisions();
-      }
-    }
-
-    // Animation Render Loop
-    function animate() {
-      const rect = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, rect.width, rect.height);
-
-      // Render Grid
-      drawCoordinateGrid();
-
-      // Render Trails & Balls
-      balls.forEach(ball => drawTrail(ball));
-      balls.forEach(ball => draw3DBall(ball.x, ball.y, ball.radius, ball.hue, 1));
-
-      // Highlight Focused Ball & Vector Control Line
-      const focusedBall = balls.find(b => b.id === selectedBallId);
-      if (focusedBall) {
-        drawSelectionRing(focusedBall);
-        if (currentTab === 'setup' || focusedBall.isStopped) {
-          drawVelocityVector(focusedBall);
+        function loadCustomQuizzesFromStorage() {
+            try {
+                const stored = localStorage.getItem('2050_custom_quizzes');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        SCIENCE_QUIZZES = parsed;
+                    }
+                }
+                const storedWsConfig = localStorage.getItem('2050_worksheet_config');
+                if (storedWsConfig) {
+                    WORKSHEET_CONFIG = JSON.parse(storedWsConfig);
+                }
+                const storedSubmissions = localStorage.getItem('2050_student_submissions');
+                if (storedSubmissions) {
+                    STUDENT_SUBMISSIONS = JSON.parse(storedSubmissions);
+                }
+            } catch (e) {}
+            updateSubmissionBadgeCount();
         }
-      }
 
-      if (isRunning) {
-        updatePhysics();
-        updateFocusStatusUI();
-      }
+        let currentActiveQuiz = null;
+        let isQuizAnswered = false;
+        let isAudioMuted = false;
 
-      requestAnimationFrame(animate);
-    }
+        // Canvas Visualizer setup
+        let canvas, ctx;
+        let animFrameId = null;
+        let windAngle = 0;
 
-    // --- Interactive Event Listeners & Drag Handling ---
+        window.onload = function() {
+            loadCustomQuizzesFromStorage();
+            canvas = document.getElementById('cityCanvas');
+            if (canvas) {
+                ctx = canvas.getContext('2d');
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                startCanvasAnimation();
+            }
 
-    tabFreeMode.addEventListener('click', () => setTab('free'));
-    tabSetupMode.addEventListener('click', () => setTab('setup'));
-    toggleGridCheckbox.addEventListener('change', (e) => {
-      showGrid = e.target.checked;
-    });
+            // Initial UI Update
+            updateDashboardUI();
+            showToast("👋 2050 에너지 도시 장관단 환영합니다! 상단 ⚙️ 아이콘으로 퀴즈를 직접 수정할 수 있습니다.");
+        };
 
-    addStoppedBallBtn.addEventListener('click', () => {
-      addNewBall(null, null, true);
-    });
-
-    launchBallBtn.addEventListener('click', () => {
-      const focusedBall = balls.find(b => b.id === selectedBallId);
-      if (!focusedBall) return;
-
-      if (focusedBall.isStopped) {
-        focusedBall.isStopped = false;
-        focusedBall.dx = focusedBall.savedDx || 4;
-        focusedBall.dy = focusedBall.savedDy || 3;
-      } else {
-        focusedBall.isStopped = true;
-        focusedBall.savedDx = focusedBall.dx;
-        focusedBall.savedDy = focusedBall.dy;
-        focusedBall.dx = 0;
-        focusedBall.dy = 0;
-      }
-      updateFocusStatusUI();
-    });
-
-    // Mouse / Touch Pointer Drag Handling for Ball Position & Velocity Vector
-    function getPointerPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
-      };
-    }
-
-    function handlePointerDown(e) {
-      const pos = getPointerPos(e);
-      const rect = canvas.getBoundingClientRect();
-
-      // 1. Check Vector Tip Drag Handle
-      const focusedBall = balls.find(b => b.id === selectedBallId);
-      if (focusedBall && (currentTab === 'setup' || focusedBall.isStopped)) {
-        const vx = focusedBall.isStopped ? focusedBall.savedDx : focusedBall.dx;
-        const vy = focusedBall.isStopped ? focusedBall.savedDy : focusedBall.dy;
-        const vecEndX = focusedBall.x + vx * VECTOR_SCALE;
-        const vecEndY = focusedBall.y + vy * VECTOR_SCALE;
-
-        if (Math.hypot(pos.x - vecEndX, pos.y - vecEndY) <= 14) {
-          isDraggingVector = true;
-          draggedBall = focusedBall;
-          return;
+        function resizeCanvas() {
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
         }
-      }
 
-      // 2. Check Ball Drag or Selection
-      const clickedBall = balls.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius + 6);
-      if (clickedBall) {
-        selectedBallId = clickedBall.id;
-        updateFocusStatusUI();
-        if (currentTab === 'setup' || clickedBall.isStopped) {
-          isDraggingBall = true;
-          draggedBall = clickedBall;
+        function startCanvasAnimation() {
+            function animate() {
+                drawCity();
+                windAngle += 0.05;
+                animFrameId = requestAnimationFrame(animate);
+            }
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            animate();
         }
-      } else {
-        // Spawn ball on empty click space
-        const clampedX = Math.max(16, Math.min(rect.width - 16, pos.x));
-        const clampedY = Math.max(16, Math.min(rect.height - 16, pos.y));
-        addNewBall(clampedX, clampedY, currentTab === 'setup');
-      }
-    }
 
-    function handlePointerMove(e) {
-      if (!draggedBall) return;
-      if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
-      const pos = getPointerPos(e);
-      const rect = canvas.getBoundingClientRect();
+        function drawCity() {
+            if (!ctx || !canvas) return;
+            const w = canvas.width;
+            const h = canvas.height;
 
-      if (isDraggingBall) {
-        // Update Ball Position
-        draggedBall.x = Math.max(draggedBall.radius, Math.min(rect.width - draggedBall.radius, pos.x));
-        draggedBall.y = Math.max(draggedBall.radius, Math.min(rect.height - draggedBall.radius, pos.y));
-      } else if (isDraggingVector) {
-        // Update Velocity Vector
-        const dx = (pos.x - draggedBall.x) / VECTOR_SCALE;
-        const dy = (pos.y - draggedBall.y) / VECTOR_SCALE;
+            // 1. Dynamic Sky Background based on Temperature
+            const tempRatio = Math.min(1, Math.max(0, (gameState.tempRise - 0.8) / 0.7));
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+            
+            if (tempRatio < 0.5) {
+                skyGrad.addColorStop(0, '#0a192f');
+                skyGrad.addColorStop(1, '#1e293b');
+            } else if (tempRatio < 0.8) {
+                skyGrad.addColorStop(0, '#331500');
+                skyGrad.addColorStop(1, '#1e293b');
+            } else {
+                skyGrad.addColorStop(0, '#450a0a');
+                skyGrad.addColorStop(1, '#1e1b4b');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, h);
 
-        if (draggedBall.isStopped) {
-          draggedBall.savedDx = dx;
-          draggedBall.savedDy = dy;
-        } else {
-          draggedBall.dx = dx;
-          draggedBall.dy = dy;
+            // Sun / Heat Glow
+            ctx.beginPath();
+            ctx.arc(w * 0.85, h * 0.25, 24, 0, Math.PI * 2);
+            ctx.fillStyle = tempRatio > 0.6 ? '#f97316' : '#fde047';
+            ctx.shadowBlur = tempRatio > 0.6 ? 30 : 15;
+            ctx.shadowColor = tempRatio > 0.6 ? '#f97316' : '#fde047';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Ground & Mountains
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.moveTo(0, h * 0.75);
+            ctx.lineTo(w * 0.3, h * 0.65);
+            ctx.lineTo(w * 0.6, h * 0.72);
+            ctx.lineTo(w, h * 0.68);
+            ctx.lineTo(w, h);
+            ctx.lineTo(0, h);
+            ctx.fill();
+
+            // City Buildings Silhouette
+            const buildingWidths = [30, 45, 35, 50, 40, 60, 35];
+            let startX = w * 0.15;
+            ctx.fillStyle = '#1e293b';
+            
+            buildingWidths.forEach((bw, idx) => {
+                const bh = 50 + (idx % 3) * 25 + (idx % 2) * 20;
+                const by = h * 0.8 - bh;
+                ctx.fillRect(startX, by, bw, bh);
+                
+                // Building Windows
+                ctx.fillStyle = (gameState.powerSupply < gameState.powerDemand) ? '#334155' : '#00F0FF';
+                for (let wy = by + 6; wy < by + bh - 10; wy += 12) {
+                    for (let wx = startX + 6; wx < startX + bw - 6; wx += 10) {
+                        ctx.fillRect(wx, wy, 4, 6);
+                    }
+                }
+                ctx.fillStyle = '#1e293b';
+                startX += bw + 8;
+            });
+
+            // Coal Chimneys (Smoke effect)
+            if (gameState.plants.coal > 0) {
+                const coalX = w * 0.08;
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(coalX, h * 0.6, 20, 40);
+                
+                // Smoke particles
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
+                for (let s = 0; s < gameState.plants.coal * 2; s++) {
+                    const smokeY = (h * 0.58) - (s * 8) - (windAngle * 5 % 20);
+                    ctx.beginPath();
+                    ctx.arc(coalX + 10 + Math.sin(smokeY * 0.1) * 6, smokeY, 6 + s * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Wind Turbines (Renewable)
+            if (gameState.plants.renewable > 0) {
+                const wtX = w * 0.88;
+                const wtY = h * 0.7;
+                
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(wtX, wtY);
+                ctx.lineTo(wtX, wtY - 45);
+                ctx.stroke();
+
+                // Rotating Blades
+                ctx.save();
+                ctx.translate(wtX, wtY - 45);
+                ctx.rotate(windAngle);
+                ctx.strokeStyle = '#e0f2fe';
+                ctx.lineWidth = 2;
+                for (let b = 0; b < 3; b++) {
+                    ctx.rotate((Math.PI * 2) / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(0, -22);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // Hydrogen Fuel Cells (Cyan Glow Tanks)
+            if (gameState.plants.hydrogen > 0) {
+                const hyX = w * 0.75;
+                ctx.fillStyle = '#06b6d4';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#06b6d4';
+                ctx.fillRect(hyX, h * 0.74, 18, 22);
+                ctx.shadowBlur = 0;
+            }
+
+            // Base Ground Line
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, h * 0.82, w, h * 0.18);
         }
-        updateFocusStatusUI();
-      }
-    }
 
-    function handlePointerUp() {
-      isDraggingBall = false;
-      isDraggingVector = false;
-      draggedBall = null;
-    }
+        function recalculatePower() {
+            // Base Supply Calculation
+            let supply = (gameState.plants.coal * PLANT_SPECS.coal.power) +
+                         (gameState.plants.renewable * PLANT_SPECS.renewable.power * gameState.weatherEfficiency * gameState.ctoBonus) +
+                         (gameState.plants.hydrogen * PLANT_SPECS.hydrogen.power) +
+                         (gameState.plants.hydro * PLANT_SPECS.hydro.power);
 
-    canvas.addEventListener('mousedown', handlePointerDown);
-    canvas.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
-
-    canvas.addEventListener('touchstart', handlePointerDown, { passive: true });
-    canvas.addEventListener('touchmove', handlePointerMove, { passive: false });
-    window.addEventListener('touchend', handlePointerUp);
-
-    // Controls bindings
-    focusReverseBtn.addEventListener('click', () => {
-      const focusedBall = balls.find(b => b.id === selectedBallId);
-      if (!focusedBall) return;
-      if (focusedBall.isStopped) {
-        focusedBall.savedDx *= -1;
-        focusedBall.savedDy *= -1;
-      } else {
-        focusedBall.dx *= -1;
-        focusedBall.dy *= -1;
-      }
-    });
-
-    focusStopBtn.addEventListener('click', () => {
-      const focusedBall = balls.find(b => b.id === selectedBallId);
-      if (!focusedBall) return;
-
-      if (focusedBall.isStopped) {
-        focusedBall.isStopped = false;
-        const currentSpeed = parseFloat(focusSpeedSlider.value);
-        const angle = Math.atan2(focusedBall.savedDy, focusedBall.savedDx) || 0;
-        focusedBall.dx = Math.cos(angle) * currentSpeed;
-        focusedBall.dy = Math.sin(angle) * currentSpeed;
-      } else {
-        focusedBall.isStopped = true;
-        focusedBall.savedDx = focusedBall.dx;
-        focusedBall.savedDy = focusedBall.dy;
-        focusedBall.dx = 0;
-        focusedBall.dy = 0;
-      }
-      updateFocusStatusUI();
-    });
-
-    focusDeleteBtn.addEventListener('click', () => {
-      if (selectedBallId === null) return;
-      balls = balls.filter(b => b.id !== selectedBallId);
-      selectedBallId = balls.length > 0 ? balls[balls.length - 1].id : null;
-      ballCountText.textContent = `${balls.length}개`;
-      updateFocusStatusUI();
-    });
-
-    focusSpeedSlider.addEventListener('input', (e) => {
-      const focusedBall = balls.find(b => b.id === selectedBallId);
-      if (!focusedBall) return;
-
-      const speed = parseFloat(e.target.value);
-      if (focusedBall.isStopped) {
-        const angle = Math.atan2(focusedBall.savedDy, focusedBall.savedDx) || 0;
-        focusedBall.savedDx = Math.cos(angle) * speed;
-        focusedBall.savedDy = Math.sin(angle) * speed;
-      } else {
-        const angle = Math.atan2(focusedBall.dy, focusedBall.dx) || 0;
-        focusedBall.dx = Math.cos(angle) * speed;
-        focusedBall.dy = Math.sin(angle) * speed;
-      }
-      updateFocusStatusUI();
-    });
-
-    addBallBtn.addEventListener('click', () => addNewBall());
-    colorBtn.addEventListener('click', () => {
-      balls.forEach(ball => {
-        ball.hue = (ball.hue + Math.floor(Math.random() * 140) + 60) % 360;
-      });
-    });
-
-    reverseAllBtn.addEventListener('click', () => {
-      balls.forEach(ball => {
-        if (ball.isStopped) {
-          ball.savedDx *= -1;
-          ball.savedDy *= -1;
-        } else {
-          ball.dx *= -1;
-          ball.dy *= -1;
+            gameState.powerSupply = Math.round(supply);
+            
+            // Temperature Rise Calculation
+            let extraTemp = (gameState.plants.coal * PLANT_SPECS.coal.temp);
+            gameState.tempRise = parseFloat((0.80 + extraTemp).toFixed(2));
         }
-      });
-    });
 
-    playPauseBtn.addEventListener('click', () => {
-      isRunning = !isRunning;
-      if (isRunning) {
-        playPauseIcon.className = "fa-solid fa-pause";
-        playPauseText.textContent = "일시정지";
-      } else {
-        playPauseIcon.className = "fa-solid fa-play";
-        playPauseText.textContent = "재생";
-      }
-    });
+        function updateDashboardUI() {
+            recalculatePower();
 
-    resetBtn.addEventListener('click', resetSimulation);
+            // Year Header
+            document.getElementById('header-year').innerText = `${YEARS[currentRoundIdx]}년 (${currentRoundIdx + 1}/4차시)`;
 
-    speedSlider.addEventListener('input', (e) => {
-      const speed = parseFloat(e.target.value);
-      updateSpeedDisplay();
-      balls.forEach(ball => {
-        if (!ball.isStopped) {
-          const angle = Math.atan2(ball.dy, ball.dx) || 0;
-          ball.dx = Math.cos(angle) * speed;
-          ball.dy = Math.sin(angle) * speed;
+            // Power Gauge
+            const powerRatio = Math.min(1.5, gameState.powerSupply / gameState.powerDemand);
+            const powerPercent = Math.round(powerRatio * 100);
+            document.getElementById('val-power-percent').innerText = `${powerPercent}%`;
+            document.getElementById('val-power-current').innerText = `${gameState.powerSupply} GW`;
+            document.getElementById('val-power-needed').innerText = `${gameState.powerDemand} GW`;
+            
+            const powerBar = document.getElementById('bar-power');
+            powerBar.style.width = `${Math.min(100, powerPercent)}%`;
+            if (powerPercent < 100) {
+                powerBar.className = "bg-rose-500 h-full rounded-full transition-all duration-500";
+                document.getElementById('city-warning-overlay').classList.remove('hidden');
+            } else {
+                powerBar.className = "bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500";
+                document.getElementById('city-warning-overlay').classList.add('hidden');
+            }
+
+            // Temp Gauge
+            document.getElementById('val-temp-text').innerText = `+${gameState.tempRise.toFixed(2)} ℃`;
+            document.getElementById('val-temp-sub').innerText = `+${gameState.tempRise.toFixed(2)} ℃`;
+            const tempPercent = Math.min(100, (gameState.tempRise / 1.8) * 100);
+            document.getElementById('bar-temp').style.width = `${tempPercent}%`;
+
+            if (gameState.tempRise >= 1.5) {
+                document.getElementById('val-temp-text').className = "font-orbitron font-extrabold text-sm text-rose-500 animate-pulse";
+            } else if (gameState.tempRise >= 1.2) {
+                document.getElementById('val-temp-text').className = "font-orbitron font-extrabold text-sm text-amber-400";
+            } else {
+                document.getElementById('val-temp-text').className = "font-orbitron font-extrabold text-sm text-emerald-400";
+            }
+
+            // Budget Gauge
+            document.getElementById('val-budget-text').innerText = `${gameState.budget} 억`;
+            document.getElementById('bar-budget').style.width = `${Math.min(100, (gameState.budget / 200) * 100)}%`;
+
+            // Approval Gauge
+            document.getElementById('val-approval-text').innerText = `${gameState.approval}%`;
+            document.getElementById('bar-approval').style.width = `${gameState.approval}%`;
+
+            // Plant Counters
+            document.getElementById('count-coal').innerText = `${gameState.plants.coal}기`;
+            document.getElementById('count-renewable').innerText = `${gameState.plants.renewable}기`;
+            document.getElementById('count-hydrogen').innerText = `${gameState.plants.hydrogen}기`;
+            document.getElementById('count-hydro').innerText = `${gameState.plants.hydro}기`;
         }
-      });
-      updateFocusStatusUI();
-    });
 
-    window.addEventListener('resize', resizeCanvas);
+        function buildPlant(type) {
+            const plant = PLANT_SPECS[type];
+            if (!plant) return;
 
-    window.onload = () => {
-      resizeCanvas();
-      resetSimulation();
-      setTab('free');
-      requestAnimationFrame(animate);
-    };
-  </script>
+            if (gameState.budget < plant.cost) {
+                playAudioBeep(250, 0.2);
+                showToast(`⚠️ 예산이 부족합니다! (필요: ${plant.cost}억, 보유: ${gameState.budget}억)`);
+                return;
+            }
+
+            gameState.budget -= plant.cost;
+            gameState.plants[type]++;
+            playAudioBeep(600, 0.15);
+            showToast(`🏗️ ${plant.name} 1기가 성공적으로 건설되었습니다!`);
+            updateDashboardUI();
+        }
+
+        function useSkill(role) {
+            if (gameState.skillsUsed[role]) {
+                showToast(`⚠️ ${role} 장관의 스킬은 이미 사용되었습니다.`);
+                return;
+            }
+
+            gameState.skillsUsed[role] = true;
+            const btn = document.getElementById(`skill-btn-${role}`);
+            if (btn) {
+                btn.classList.add('opacity-40', 'cursor-not-allowed');
+            }
+
+            playAudioBeep(800, 0.25);
+
+            if (role === 'CEO') {
+                gameState.budget += 30;
+                showToast("⚡ CEO 스킬 사용: 정부 에너지 보조금 +30억 지급!");
+            } else if (role === 'CCO') {
+                showToast("🌤️ CCO 스킬 사용: 다가올 기상 이변을 예보하여 도시 피해 예방 준비!");
+            } else if (role === 'CTO') {
+                gameState.ctoBonus = 1.2;
+                showToast("🔬 CTO 스킬 사용: 신재생 에너지 발전 효율 20% 영구 상승!");
+            } else if (role === 'CSO') {
+                gameState.approval = Math.min(100, gameState.approval + 20);
+                showToast("🚀 CSO 스킬 사용: 미래 문명 비전 제시로 시민 만족도 +20% 상승!");
+            }
+            updateDashboardUI();
+        }
+
+        function nextTurn() {
+            currentRoundIdx++;
+
+            if (currentRoundIdx >= YEARS.length) {
+                triggerEnding();
+                return;
+            }
+
+            // Per turn bonuses and changes
+            gameState.budget += 50;
+            gameState.powerDemand += 25;
+            gameState.weatherEfficiency = 1.0; // reset weather anomaly
+
+            updateDashboardUI();
+            playAudioBeep(440, 0.2);
+            triggerRandomEvent();
+        }
+
+        function triggerRandomEvent() {
+            const ev = SCIENCE_EVENTS[Math.floor(Math.random() * SCIENCE_EVENTS.length)];
+            ev.apply();
+
+            document.getElementById('event-icon').className = `fa-solid ${ev.icon}`;
+            document.getElementById('event-title').innerText = ev.title;
+            document.getElementById('event-desc').innerText = ev.desc;
+            document.getElementById('event-effect-text').innerText = `• ${ev.effectText}`;
+
+            renderQuizUI();
+
+            document.getElementById('event-modal').classList.remove('hidden');
+            updateDashboardUI();
+        }
+
+        function renderQuizUI() {
+            isQuizAnswered = false;
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.add('hidden');
+
+            if (!SCIENCE_QUIZZES || SCIENCE_QUIZZES.length === 0) {
+                SCIENCE_QUIZZES = JSON.parse(JSON.stringify(DEFAULT_SCIENCE_QUIZZES));
+            }
+
+            currentActiveQuiz = SCIENCE_QUIZZES[Math.floor(Math.random() * SCIENCE_QUIZZES.length)];
+
+            document.getElementById('quiz-unit-badge').innerText = `💡 ${currentActiveQuiz.unit}`;
+            document.getElementById('quiz-question').innerText = currentActiveQuiz.question;
+
+            const optsContainer = document.getElementById('quiz-options');
+            optsContainer.innerHTML = '';
+
+            currentActiveQuiz.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs text-slate-200 transition font-medium flex items-center justify-between";
+                btn.innerText = optText;
+                btn.onclick = () => selectQuizAnswer(idx);
+                optsContainer.appendChild(btn);
+            });
+        }
+
+        function selectQuizAnswer(selectedIdx) {
+            if (isQuizAnswered || !currentActiveQuiz) return;
+            isQuizAnswered = true;
+
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden');
+
+            if (selectedIdx === currentActiveQuiz.answer) {
+                playAudioBeep(880, 0.3);
+                gameState.budget += 20;
+                feedback.className = "mt-2 text-[11px] font-bold p-2.5 rounded-lg border bg-emerald-950/80 text-emerald-200 border-emerald-500/50";
+                feedback.innerHTML = `🎉 정답입니다! 🪙 <b>+20억 지원금</b>을 획득했습니다.<br><span class="font-normal text-slate-300">${currentActiveQuiz.explanation}</span>`;
+            } else {
+                playAudioBeep(220, 0.3);
+                feedback.className = "mt-2 text-[11px] font-bold p-2.5 rounded-lg border bg-rose-950/80 text-rose-200 border-rose-500/50";
+                feedback.innerHTML = `❌ 아쉽습니다! 정답: <b>${currentActiveQuiz.options[currentActiveQuiz.answer]}</b><br><span class="font-normal text-slate-300">${currentActiveQuiz.explanation}</span>`;
+            }
+            updateDashboardUI();
+        }
+
+        function closeEventModal() {
+            document.getElementById('event-modal').classList.add('hidden');
+        }
+
+        function triggerEnding() {
+            const modal = document.getElementById('ending-modal');
+            const icon = document.getElementById('ending-icon');
+            const badge = document.getElementById('ending-badge');
+            const title = document.getElementById('ending-title');
+            const desc = document.getElementById('ending-desc');
+
+            if (gameState.tempRise >= 1.5) {
+                icon.className = "fa-solid fa-fire text-rose-500";
+                badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-rose-950 text-rose-300 border border-rose-800 inline-block mb-3";
+                badge.innerText = "🔴 BAD ENDING - 임계점 초과";
+                title.innerText = "지구 온난화 재앙 발생";
+                desc.innerText = "화석 연료 오남용으로 지구 온도가 +1.5℃를 넘었습니다. 해수면 상승과 이상 기후로 도시 기능이 저하되었습니다.";
+            } else if (gameState.powerSupply < gameState.powerDemand) {
+                icon.className = "fa-solid fa-plug-circle-xmark text-amber-400";
+                badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-amber-950 text-amber-300 border border-amber-800 inline-block mb-3";
+                badge.innerText = "🟡 NORMAL ENDING - 블랙아웃";
+                title.innerText = "전력 공급 셧다운 발생";
+                desc.innerText = "기후 위기는 방어했으나 전력 생산량이 부족하여 도시 밤마다 정전이 발생했습니다. 신재생 및 수소 발전소를 확충해 보세요.";
+            } else {
+                icon.className = "fa-solid fa-earth-asia text-cyan-400";
+                badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-800 inline-block mb-3";
+                badge.innerText = "🟢 HAPPY ENDING - 미션 완벽 달성";
+                title.innerText = "2050 지속가능한 미래도시 성공!";
+                desc.innerText = "축하합니다! 수소 연료전지와 신재생 에너지의 조화로운 구성으로 1.5℃ 임계점을 지켜내고 전력도 완벽하게 공급했습니다!";
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function restartGame() {
+            currentRoundIdx = 0;
+            gameState = {
+                powerDemand: 100,
+                powerSupply: 100,
+                tempRise: 0.80,
+                budget: 120,
+                approval: 85,
+                plants: { coal: 1, renewable: 1, hydrogen: 1, hydro: 0 },
+                skillsUsed: { CEO: false, CCO: false, CTO: false, CSO: false },
+                weatherEfficiency: 1.0,
+                ctoBonus: 1.0
+            };
+
+            ['CEO', 'CCO', 'CTO', 'CSO'].forEach(role => {
+                const btn = document.getElementById(`skill-btn-${role}`);
+                if (btn) btn.classList.remove('opacity-40', 'cursor-not-allowed');
+            });
+
+            document.getElementById('ending-modal').classList.add('hidden');
+            updateDashboardUI();
+            showToast("🔄 게임이 새로 재부팅되었습니다!");
+        }
+
+        function submitReflection() {
+            const text = document.getElementById('reflection-input').value.trim();
+            if (!text) {
+                showToast("⚠️ 소감문 내용을 입력해 주세요.");
+                return;
+            }
+            playAudioBeep(600, 0.2);
+            showToast("🎉 선생님께 한 줄 소감문이 성공적으로 전달되었습니다!");
+            document.getElementById('reflection-input').value = "";
+        }
+
+        function toggleAudio() {
+            isAudioMuted = !isAudioMuted;
+            const icon = document.getElementById('audio-icon');
+            if (isAudioMuted) {
+                icon.className = "fa-solid fa-volume-xmark text-xs sm:text-sm text-rose-400";
+                showToast("🔇 음소거 설정됨");
+            } else {
+                icon.className = "fa-solid fa-volume-high text-xs sm:text-sm text-cyan-400";
+                showToast("🔊 사운드 켜짐");
+            }
+        }
+
+        function playAudioBeep(freq = 440, duration = 0.1) {
+            if (isAudioMuted) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            if (!toast || !msgEl) return;
+            msgEl.innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ⚙️ 교사 전용 퀴즈 커스텀 관리자 기능 함수들
+        function openTeacherAdmin() {
+            renderAdminQuizList();
+            cancelAdminForm();
+            loadWorksheetConfigToAdminForm();
+            renderSubmissionsList();
+            document.getElementById('admin-modal').classList.remove('hidden');
+        }
+
+        function renderAdminQuizList() {
+            const container = document.getElementById('admin-quiz-list-container');
+            const countEl = document.getElementById('admin-quiz-count');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (countEl) countEl.innerText = SCIENCE_QUIZZES.length;
+
+            SCIENCE_QUIZZES.forEach((quiz, idx) => {
+                const div = document.createElement('div');
+                div.className = "p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-xs";
+                div.innerHTML = `
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold text-[10px] border border-cyan-800">${quiz.unit}</span>
+                            <strong class="text-white text-xs">${quiz.question}</strong>
+                        </div>
+                        <p class="text-[11px] text-slate-400">정답: <span class="text-amber-400 font-bold">${quiz.options[quiz.answer]}</span> | ${quiz.explanation}</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 ml-2 whitespace-nowrap">
+                        <button onclick="editQuiz(${idx})" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-bold">수정</button>
+                        <button onclick="deleteQuiz(${idx})" class="px-2 py-1 rounded bg-rose-950 hover:bg-rose-900 text-rose-300 text-[11px] font-bold">삭제</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function cancelAdminForm() {
+            document.getElementById('edit-quiz-index').value = "-1";
+            document.getElementById('admin-form-title').innerHTML = `<i class="fa-solid fa-plus-circle"></i> 새 퀴즈 추가하기`;
+            document.getElementById('quiz-input-unit').value = '';
+            document.getElementById('quiz-input-question').value = '';
+            document.getElementById('quiz-input-answer').value = '0';
+            document.getElementById('quiz-input-opt0').value = '';
+            document.getElementById('quiz-input-opt1').value = '';
+            document.getElementById('quiz-input-opt2').value = '';
+            document.getElementById('quiz-input-opt3').value = '';
+            document.getElementById('quiz-input-explanation').value = '';
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        }
+
+        function editQuiz(idx) {
+            const quiz = SCIENCE_QUIZZES[idx];
+            if (!quiz) return;
+            document.getElementById('edit-quiz-index').value = idx;
+            document.getElementById('admin-form-title').innerHTML = `<i class="fa-solid fa-pen"></i> 퀴즈 수정하기 (#${idx + 1})`;
+            document.getElementById('quiz-input-unit').value = quiz.unit;
+            document.getElementById('quiz-input-question').value = quiz.question;
+            document.getElementById('quiz-input-answer').value = quiz.answer;
+            document.getElementById('quiz-input-opt0').value = quiz.options[0] || '';
+            document.getElementById('quiz-input-opt1').value = quiz.options[1] || '';
+            document.getElementById('quiz-input-opt2').value = quiz.options[2] || '';
+            document.getElementById('quiz-input-opt3').value = quiz.options[3] || '';
+            document.getElementById('quiz-input-explanation').value = quiz.explanation;
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+        }
+
+        function saveAdminQuiz() {
+            const idx = parseInt(document.getElementById('edit-quiz-index').value);
+            const unit = document.getElementById('quiz-input-unit').value.trim() || "중3 과학";
+            const question = document.getElementById('quiz-input-question').value.trim();
+            const answer = parseInt(document.getElementById('quiz-input-answer').value);
+            const opt0 = document.getElementById('quiz-input-opt0').value.trim();
+            const opt1 = document.getElementById('quiz-input-opt1').value.trim();
+            const opt2 = document.getElementById('quiz-input-opt2').value.trim();
+            const opt3 = document.getElementById('quiz-input-opt3').value.trim();
+            const explanation = document.getElementById('quiz-input-explanation').value.trim();
+
+            if (!question || !opt0 || !opt1) {
+                showToast("⚠️ 질문과 1, 2번 보기는 필수 입력 사항입니다.");
+                return;
+            }
+
+            const newQuiz = {
+                unit: unit,
+                question: question,
+                options: [opt0, opt1, opt2 || "기타", opt3 || "기타"],
+                answer: answer,
+                explanation: explanation || "과학적 반응 원리에 따른 결과입니다."
+            };
+
+            if (idx >= 0 && idx < SCIENCE_QUIZZES.length) {
+                SCIENCE_QUIZZES[idx] = newQuiz;
+                showToast("✏️ 퀴즈가 수정되었습니다!");
+            } else {
+                SCIENCE_QUIZZES.push(newQuiz);
+                showToast("➕ 새 퀴즈가 추가되었습니다!");
+            }
+
+            try {
+                localStorage.setItem('2050_custom_quizzes', JSON.stringify(SCIENCE_QUIZZES));
+            } catch(e) {}
+
+            cancelAdminForm();
+            renderAdminQuizList();
+        }
+
+        function deleteQuiz(idx) {
+            if (confirm("이 퀴즈를 삭제하시겠습니까?")) {
+                SCIENCE_QUIZZES.splice(idx, 1);
+                try {
+                    localStorage.setItem('2050_custom_quizzes', JSON.stringify(SCIENCE_QUIZZES));
+                } catch(e) {}
+                showToast("🗑️ 퀴즈가 삭제되었습니다.");
+                renderAdminQuizList();
+            }
+        }
+
+        function resetToDefaultQuizzes() {
+            if (confirm("기본 퀴즈 세트로 초기화하시겠습니까? 작성하신 커스텀 퀴즈는 삭제됩니다.")) {
+                SCIENCE_QUIZZES = JSON.parse(JSON.stringify(DEFAULT_SCIENCE_QUIZZES));
+                try {
+                    localStorage.removeItem('2050_custom_quizzes');
+                } catch(e) {}
+                showToast("🔄 기본 퀴즈 세트로 초기화되었습니다.");
+                cancelAdminForm();
+                renderAdminQuizList();
+            }
+        }
+
+        function switchAdminTab(tabName) {
+            ['quiz', 'worksheet', 'submissions'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const panel = document.getElementById(`admin-panel-${t}`);
+                if (t === tabName) {
+                    btn.className = "px-4 py-2 text-xs font-bold rounded-t-xl bg-amber-500 text-slate-950 transition flex items-center gap-1.5 shadow";
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.className = "px-4 py-2 text-xs font-bold rounded-t-xl bg-slate-900 text-slate-400 hover:text-white transition flex items-center gap-1.5";
+                    panel.classList.add('hidden');
+                }
+            });
+        }
+
+        function loadWorksheetConfigToAdminForm() {
+            document.getElementById('cfg-ws-q1').value = WORKSHEET_CONFIG.q1_title;
+            document.getElementById('cfg-ws-q2').value = WORKSHEET_CONFIG.q2_title;
+            document.getElementById('cfg-ws-q3').value = WORKSHEET_CONFIG.q3_title;
+        }
+
+        function saveWorksheetQuestionConfig() {
+            const q1 = document.getElementById('cfg-ws-q1').value.trim();
+            const q2 = document.getElementById('cfg-ws-q2').value.trim();
+            const q3 = document.getElementById('cfg-ws-q3').value.trim();
+
+            if (!q1 || !q2 || !q3) {
+                showToast("⚠️ 세 가지 질문 항목을 모두 입력해 주세요.");
+                return;
+            }
+
+            WORKSHEET_CONFIG = { q1_title: q1, q2_title: q2, q3_title: q3 };
+            try {
+                localStorage.setItem('2050_worksheet_config', JSON.stringify(WORKSHEET_CONFIG));
+            } catch(e) {}
+
+            showToast("💾 학습지 서술형 문항 제목이 저장되었습니다!");
+            applyWorksheetConfigToUI();
+        }
+
+        function applyWorksheetConfigToUI() {
+            const l1 = document.getElementById('lbl-ws-q1');
+            const l2 = document.getElementById('lbl-ws-q2');
+            const l3 = document.getElementById('lbl-ws-q3');
+            if (l1) l1.innerText = WORKSHEET_CONFIG.q1_title;
+            if (l2) l2.innerText = WORKSHEET_CONFIG.q2_title;
+            if (l3) l3.innerText = WORKSHEET_CONFIG.q3_title;
+        }
+
+        function submitWorksheet() {
+            const team = document.getElementById('ws-team-name').value.trim();
+            const members = document.getElementById('ws-members').value.trim();
+            const q1 = document.getElementById('ws-q1').value.trim();
+            const q2 = document.getElementById('ws-q2').value.trim();
+            const q3 = document.getElementById('ws-q3').value.trim();
+
+            if (!team || !members) {
+                showToast("⚠️ 모둠 이름과 모둠원 성명을 반드시 작성해 주세요.");
+                return;
+            }
+
+            // 문제 1번 & 2번 세트 답변 수집
+            const prob1_1 = userWorksheetAnswers["1-1"] !== undefined ? CUSTOM_WORKSHEET_PROBLEMS[0].subQuestions[0].options[userWorksheetAnswers["1-1"]] : "미선택";
+            const prob1_2 = userWorksheetAnswers["1-2"] !== undefined ? CUSTOM_WORKSHEET_PROBLEMS[0].subQuestions[1].options[userWorksheetAnswers["1-2"]] : "미선택";
+            const prob1_3_A = document.getElementById('ws-sub-input-1-3-A')?.value.trim() || "미입력";
+            const prob1_3_B = document.getElementById('ws-sub-input-1-3-B')?.value.trim() || "미입력";
+            const prob2_1_A = document.getElementById('ws-sub-input-2-1-A')?.value.trim() || "미입력";
+            const prob2_1_B = document.getElementById('ws-sub-input-2-1-B')?.value.trim() || "미입력";
+
+            const submission = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                teamName: team,
+                members: members,
+                problemAnswers: {
+                    "1-1": prob1_1,
+                    "1-2": prob1_2,
+                    "1-3_A": prob1_3_A,
+                    "1-3_B": prob1_3_B,
+                    "2-1_A": prob2_1_A,
+                    "2-1_B": prob2_1_B
+                },
+                answers: {
+                    q1: q1 || "미작성",
+                    q2: q2 || "미작성",
+                    q3: q3 || "미작성"
+                }
+            };
+
+            STUDENT_SUBMISSIONS.push(submission);
+            try {
+                localStorage.setItem('2050_student_submissions', JSON.stringify(STUDENT_SUBMISSIONS));
+            } catch(e) {}
+
+            updateSubmissionBadgeCount();
+            playAudioBeep(880, 0.3);
+            showToast(`🎉 [${team}] 학습지 제출 완료! 교사 제출함에 저장되었습니다.`);
+            closeWorksheetModal();
+        }
+
+        function updateSubmissionBadgeCount() {
+            const b = document.getElementById('badge-submission-count');
+            const t = document.getElementById('submission-count-text');
+            if (b) b.innerText = STUDENT_SUBMISSIONS.length;
+            if (t) t.innerText = STUDENT_SUBMISSIONS.length;
+        }
+
+        function renderSubmissionsList() {
+            const container = document.getElementById('submissions-list-container');
+            if (!container) return;
+            container.innerHTML = '';
+            updateSubmissionBadgeCount();
+
+            if (STUDENT_SUBMISSIONS.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-500 glass-card rounded-xl border border-slate-800">
+                        <i class="fa-solid fa-inbox text-3xl text-slate-600 mb-2 block"></i>
+                        아직 제출된 학생 학습지가 없습니다.
+                    </div>`;
+                return;
+            }
+
+            STUDENT_SUBMISSIONS.slice().reverse().forEach((sub, idx) => {
+                const pAns = sub.problemAnswers || {};
+                const card = document.createElement('div');
+                card.className = "p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold text-[10px] border border-emerald-800">제출됨</span>
+                            <strong class="text-white text-sm">${sub.teamName}</strong>
+                            <span class="text-slate-400 text-[11px]">(${sub.members})</span>
+                        </div>
+                        <span class="text-slate-500 text-[10px]">${sub.timestamp}</span>
+                    </div>
+                    <div class="p-2.5 rounded bg-slate-950 border border-cyan-500/30 text-[11px] space-y-1">
+                        <span class="text-cyan-300 font-bold block mb-1">📘 단원 문제 제출 답안:</span>
+                        <div class="grid grid-cols-2 gap-2 text-slate-300">
+                            <div>• 1-1: <strong class="text-white">${pAns['1-1'] || '-'}</strong></div>
+                            <div>• 1-2: <strong class="text-white">${pAns['1-2'] || '-'}</strong></div>
+                            <div class="col-span-2">• 1-3 주관식: ㉠ <strong>${pAns['1-3_A'] || '-'}</strong> / ㉡ <strong>${pAns['1-3_B'] || '-'}</strong></div>
+                            <div class="col-span-2 border-t border-slate-800/80 pt-1 text-purple-300">• 2번 (기권과 날씨): 낮 ㉠ <strong>${pAns['2-1_A'] || '-'}</strong> / 밤 ㉡ <strong>${pAns['2-1_B'] || '-'}</strong></div>
+                        </div>
+                    </div>
+                    <div class="space-y-1.5 text-slate-300 pt-1 text-[11px]">
+                        <div><strong class="text-purple-300">${WORKSHEET_CONFIG.q1_title}</strong><p class="text-slate-200 mt-0.5 bg-slate-950 p-2 rounded border border-slate-800/60">${sub.answers.q1}</p></div>
+                        <div><strong class="text-purple-300">${WORKSHEET_CONFIG.q2_title}</strong><p class="text-slate-200 mt-0.5 bg-slate-950 p-2 rounded border border-slate-800/60">${sub.answers.q2}</p></div>
+                        <div><strong class="text-purple-300">${WORKSHEET_CONFIG.q3_title}</strong><p class="text-slate-200 mt-0.5 bg-slate-950 p-2 rounded border border-slate-800/60">${sub.answers.q3}</p></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function clearAllSubmissions() {
+            if (confirm("정말로 모든 제출 항목을 삭제하시겠습니까?")) {
+                STUDENT_SUBMISSIONS = [];
+                try {
+                    localStorage.removeItem('2050_student_submissions');
+                } catch(e) {}
+                showToast("🗑️ 제출함이 초기화되었습니다.");
+                renderSubmissionsList();
+            }
+        }
+
+        function exportSubmissionsCSV() {
+            if (STUDENT_SUBMISSIONS.length === 0) {
+                showToast("⚠️ 다운로드할 제출 데이터가 없습니다.");
+                return;
+            }
+
+            let text = `=== 2050 미래도시 프로젝트 학습지 제출 데이터 전체 목록 ===\n\n`;
+            STUDENT_SUBMISSIONS.forEach((sub, i) => {
+                text += `[${i+1}] 팀명: ${sub.teamName} | 모둠원: ${sub.members} | 제출시각: ${sub.timestamp} | 퀴즈점수: ${sub.quizScore}\n`;
+                text += `  - ${WORKSHEET_CONFIG.q1_title}\n    답변: ${sub.answers.q1}\n`;
+                text += `  - ${WORKSHEET_CONFIG.q2_title}\n    답변: ${sub.answers.q2}\n`;
+                text += `  - ${WORKSHEET_CONFIG.q3_title}\n    답변: ${sub.answers.q3}\n`;
+                text += `--------------------------------------------------------\n`;
+            });
+
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `학습지제출결과_모음_${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("📥 전체 제출 결과 파일이 다운로드되었습니다!");
+        }
+
+        function openWorksheetModal() {
+            applyWorksheetConfigToUI();
+            renderCustomWorksheetProblems();
+            document.getElementById('worksheet-modal').classList.remove('hidden');
+        }
+
+        function openWorksheetFromEnding() {
+            document.getElementById('ending-modal').classList.add('hidden');
+            openWorksheetModal();
+        }
+
+        function closeWorksheetModal() {
+            document.getElementById('worksheet-modal').classList.add('hidden');
+        }
+
+        function closeTeacherAdmin() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        function renderCustomWorksheetProblems() {
+            const container = document.getElementById('worksheet-custom-problems-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            CUSTOM_WORKSHEET_PROBLEMS.forEach((prob) => {
+                const problemCard = document.createElement('div');
+                problemCard.className = "p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 text-xs";
+
+                let subQuestionsHtml = prob.subQuestions.map((sub) => {
+                    if (sub.type === 'radio') {
+                        const optionsHtml = sub.options.map((opt, oIdx) => `
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-cyan-500/50 cursor-pointer text-slate-200 text-xs transition">
+                                <input type="radio" name="ws_sub_${sub.subId}" value="${oIdx}" onchange="selectSubQuestionOption('${sub.subId}', ${oIdx})" class="text-cyan-500 focus:ring-0">
+                                <span>${opt}</span>
+                            </label>
+                        `).join('');
+
+                        return `
+                            <div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-2">
+                                <h5 class="font-bold text-white text-xs">${sub.title}</h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pl-1">
+                                    ${optionsHtml}
+                                </div>
+                            </div>
+                        `;
+                    } else if (sub.type === 'subjective') {
+                        const inputsHtml = sub.inputs.map((inp) => `
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-amber-400 text-xs whitespace-nowrap">${inp.label}:</span>
+                                <input type="text" id="ws-sub-input-${inp.key}" placeholder="${inp.placeholder}" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                        `).join('');
+
+                        return `
+                            <div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-2">
+                                <h5 class="font-bold text-white text-xs">${sub.title}</h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                    ${inputsHtml}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    return '';
+                }).join('');
+
+                problemCard.innerHTML = `
+                    <div class="border-b border-slate-800 pb-2 flex items-center justify-between">
+                        <span class="px-2.5 py-1 rounded bg-purple-950 text-purple-300 font-bold text-[10px] border border-purple-800">${prob.unit}</span>
+                        <span class="text-[10px] text-slate-400">문제 ${prob.id}번</span>
+                    </div>
+                    <h4 class="font-extrabold text-white text-xs sm:text-sm leading-relaxed">${prob.mainTitle}</h4>
+                    <div class="space-y-3 pt-1">
+                        ${subQuestionsHtml}
+                    </div>
+                `;
+                container.appendChild(problemCard);
+            });
+        }
+
+        function selectSubQuestionOption(subId, optionIdx) {
+            userWorksheetAnswers[subId] = optionIdx;
+        }
+
+        function generateWorksheetFormattedText() {
+            const team = document.getElementById('ws-team-name').value.trim() || "미입력 모둠";
+            const members = document.getElementById('ws-members').value.trim() || "미입력 모둠원";
+            const q1 = document.getElementById('ws-q1').value.trim() || "내용 없음";
+            const q2 = document.getElementById('ws-q2').value.trim() || "내용 없음";
+            const q3 = document.getElementById('ws-q3').value.trim() || "내용 없음";
+
+            const prob1_1 = userWorksheetAnswers["1-1"] !== undefined ? CUSTOM_WORKSHEET_PROBLEMS[0].subQuestions[0].options[userWorksheetAnswers["1-1"]] : "미선택";
+            const prob1_2 = userWorksheetAnswers["1-2"] !== undefined ? CUSTOM_WORKSHEET_PROBLEMS[0].subQuestions[1].options[userWorksheetAnswers["1-2"]] : "미선택";
+            const prob1_3_A = document.getElementById('ws-sub-input-1-3-A')?.value.trim() || "미입력";
+            const prob1_3_B = document.getElementById('ws-sub-input-1-3-B')?.value.trim() || "미입력";
+            const prob2_1_A = document.getElementById('ws-sub-input-2-1-A')?.value.trim() || "미입력";
+            const prob2_1_B = document.getElementById('ws-sub-input-2-1-B')?.value.trim() || "미입력";
+
+            let text = `====================================\n`;
+            text += `📝 [2050년 미래도시 프로젝트 - 학생 수업 학습지]\n`;
+            text += `====================================\n`;
+            text += `• 모둠명: ${team}\n`;
+            text += `• 모둠원 및 역할: ${members}\n\n`;
+            text += `[Part 1. 단원별 핵심 문제]\n`;
+            text += `1번) [화학 반응과 에너지 변화]-[에너지 전환과 보존]\n`;
+            text += `  1-1) 선택 답안: ${prob1_1}\n`;
+            text += `  1-2) 선택 답안: ${prob1_2}\n`;
+            text += `  1-3) 주관식 답안: ㉠ [${prob1_3_A}], ㉡ [${prob1_3_B}]\n\n`;
+            text += `2번) [기권과 날씨]\n`;
+            text += `  2-1) 주관식 답안: 낮의 고기압 ㉠ [${prob2_1_A}], 밤의 고기압 ㉡ [${prob2_1_B}]\n\n`;
+
+            text += `[Part 2. 탐구 및 성찰 소감문]\n`;
+            text += `Q1. 선택한 주요 에너지 원과 과학적 이유:\n${q1}\n\n`;
+            text += `Q2. 지속 가능한 문명을 위한 과학기술의 과제:\n${q2}\n\n`;
+            text += `Q3. 수업 소감 및 탄소 중립 다짐:\n${q3}\n`;
+            text += `====================================\n`;
+
+            return text;
+        }
+
+        function copyWorksheetToClipboard() {
+            const formattedText = generateWorksheetFormattedText();
+            
+            // Clipboard Fallback Execution
+            const textArea = document.createElement("textarea");
+            textArea.value = formattedText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    playAudioBeep(600, 0.2);
+                    showToast("📋 학습지 내용이 클립보드에 복사되었습니다! 클래스룸/게시판에 붙여넣으세요.");
+                } else {
+                    showToast("⚠️ 복사 실패. 텍스트를 직접 선택해 복사해주세요.");
+                }
+            } catch (err) {
+                showToast("⚠️ 클립보드 복사 중 오류가 발생했습니다.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function printWorksheet() {
+            const formattedText = generateWorksheetFormattedText();
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                showToast("⚠️ 팝업 창이 블록되었습니다. 팝업을 허용해주세요.");
+                return;
+            }
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>2050 미래도시 프로젝트 학습지 제출본</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 30px; line-height: 1.6; color: #111; }
+                        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 20px; }
+                        pre { white-space: pre-wrap; font-family: inherit; font-size: 13px; background: #f4f4f4; padding: 15px; border-radius: 8px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>📝 2050년 미래도시 프로젝트 활동 학습지 제출본</h1>
+                    <pre>${formattedText}</pre>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+            }, 300);
+        }
+
+        function exportCustomHTML() {
+            let fullHTML = document.documentElement.outerHTML;
+            const quizJSON = JSON.stringify(SCIENCE_QUIZZES, null, 8);
+
+            const targetMarker = "const DEFAULT_SCIENCE_QUIZZES = ";
+            const startPos = fullHTML.indexOf(targetMarker);
+            if (startPos !== -1) {
+                const endPos = fullHTML.indexOf("];", startPos) + 2;
+                const newCode = `const DEFAULT_SCIENCE_QUIZZES = ${quizJSON};`;
+                fullHTML = fullHTML.slice(0, startPos) + newCode + fullHTML.slice(endPos);
+            }
+
+            const blob = new Blob(["<!DOCTYPE html>\n" + fullHTML], { type: 'text/html;charset=utf-8;' });
+            const downloadUrl = URL.createObjectURL(blob);
+            const downloadLink = document.createElement("a");
+            downloadLink.href = downloadUrl;
+            downloadLink.download = "2050_에너지도시_커스텀퀴즈_배포용.html";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(downloadUrl);
+
+            showToast("📥 커스텀 퀴즈가 탑재된 배포용 HTML 파일이 다운로드되었습니다!");
+        }
+    </script>
 </body>
 </html>
