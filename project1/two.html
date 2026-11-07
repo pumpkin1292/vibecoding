@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학생 자리 배치 프로그램</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .drag-over { transform: scale(1.05); border-color: #3b82f6 !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); }
+        .desk { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bg-dots { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px; }
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-indigo-50 to-purple-50 shadow-sm border-b border-indigo-100 py-4 px-6 flex justify-between items-center z-10 shrink-0">
+        <h1 ondblclick="openSecretModal()" class="text-2xl font-black text-indigo-900 flex items-center gap-2 tracking-tight cursor-pointer hover:opacity-80 transition-opacity" title="더블 클릭하면 비밀 설정창이 열립니다.">
+            <span class="text-3xl">🏫</span> 스마트 자리 배치
+        </h1>
+        <div class="flex gap-2">
+            <button onclick="startLottery()" class="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-1">
+                🎁 제비뽑기
+            </button>
+            <button onclick="generateSequentialArrangement()" class="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5">
+                번호순 배치
+            </button>
+            <button onclick="generateArrangement()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5">
+                랜덤 배치
+            </button>
+            <button onclick="copyToClipboard()" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5">
+                복사 (엑셀)
+            </button>
+            <button onclick="initEmptyClassroom()" class="bg-slate-500 hover:bg-slate-600 text-white px-5 py-2 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5">
+                초기화
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Sidebar (Settings) -->
+        <aside class="w-80 bg-white shadow-md z-0 flex flex-col shrink-0 overflow-y-auto border-r border-gray-200">
+            <div class="p-5 flex flex-col gap-6">
+                
+                <!-- Classroom Layout Config -->
+                <section class="border-b border-gray-100 pb-5">
+                    <div class="flex justify-between items-end mb-2">
+                        <h2 class="text-sm font-bold text-gray-600 uppercase tracking-wide">교실 구조 설정</h2>
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="config-blocks" class="flex-1 border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="2">2분단</option>
+                            <option value="3" selected>3분단</option>
+                            <option value="4">4분단</option>
+                        </select>
+                        <select id="config-rows" class="flex-1 border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="4" selected>4줄</option>
+                            <option value="5">5줄</option>
+                            <option value="6">6줄</option>
+                            <option value="7">7줄</option>
+                        </select>
+                        <button onclick="applyLayoutConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md text-sm font-bold transition shadow-sm">적용</button>
+                    </div>
+                    <div class="flex items-center gap-2 mt-3">
+                        <input type="checkbox" id="config-middle-extra" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" checked>
+                        <label for="config-middle-extra" class="text-xs text-gray-600 font-bold cursor-pointer">가운데 분단 뒷자리(1줄) 추가</label>
+                    </div>
+                    <p class="text-[11px] text-red-500 mt-2 font-medium">* 구조 변경 시 기존 자리 및 조건이 모두 초기화됩니다.</p>
+                </section>
+
+                <!-- Student List -->
+                <section>
+                    <div class="flex justify-between items-end mb-2">
+                        <h2 class="text-sm font-bold text-gray-600 uppercase tracking-wide">학생 명단</h2>
+                        <span id="student-count" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">현재 24명</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-2">쉼표(,)나 줄바꿈으로 구분하여 입력하세요.</p>
+                    <textarea id="student-list" rows="5" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none leading-relaxed" oninput="updateSelectOptions()"></textarea>
+                    <p class="text-[11px] text-red-500 mt-1 hidden" id="count-warning">* 최대 배치 인원을 초과했습니다.</p>
+                </section>
+
+                <!-- Fixed Seats -->
+                <section>
+                    <h2 class="text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">고정석 설정</h2>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex gap-2">
+                            <select id="fixed-student" class="flex-1 border border-gray-300 rounded-md p-2 text-sm outline-none bg-gray-50"></select>
+                            <select id="fixed-seat" class="flex-1 border border-gray-300 rounded-md p-2 text-sm outline-none bg-gray-50"></select>
+                        </div>
+                        <button onclick="addFixedSeat()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-md text-sm font-medium transition">추가하기</button>
+                    </div>
+                    <ul id="fixed-list" class="mt-3 text-sm text-gray-600 space-y-1 bg-gray-50 p-2 rounded-md empty:hidden border border-gray-100"></ul>
+                </section>
+
+                <!-- Separation Rules -->
+                <section>
+                    <h2 class="text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">분리 조건 설정</h2>
+                    <p class="text-xs text-gray-400 mb-2">인접하게 앉으면 안 되는 학생들</p>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex gap-2">
+                            <select id="sep-student-1" class="flex-1 border border-gray-300 rounded-md p-2 text-sm outline-none bg-gray-50"></select>
+                            <select id="sep-student-2" class="flex-1 border border-gray-300 rounded-md p-2 text-sm outline-none bg-gray-50"></select>
+                        </div>
+                        <button onclick="addSeparationRule()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-md text-sm font-medium transition">추가하기</button>
+                    </div>
+                    <ul id="sep-list" class="mt-3 text-sm text-gray-600 space-y-1 bg-gray-50 p-2 rounded-md empty:hidden border border-gray-100"></ul>
+                </section>
+                
+                <div class="mt-auto pt-4 border-t border-gray-100">
+                    <p class="text-xs text-gray-400 text-center flex flex-col gap-1">
+                        <span>💡 생성된 배치도에서 학생을 드래그하여</span>
+                        <span>원하는 자리로 교체할 수 있습니다.</span>
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Content (Seating Chart) -->
+        <div class="flex-1 bg-slate-50 bg-dots overflow-y-auto p-8 relative flex justify-center">
+            
+            <div class="max-w-4xl w-full flex flex-col items-center">
+                <!-- Teacher's Desk (Front) -->
+                <div class="w-80 h-14 bg-gradient-to-b from-slate-700 to-slate-800 text-white rounded-b-3xl flex items-center justify-center font-bold text-lg mb-14 shadow-[0_6px_0_0_#334155] relative border border-slate-600 z-10">
+                    <div class="absolute -top-10 bg-emerald-700 text-emerald-50 px-32 py-2 rounded-md text-sm font-bold shadow-sm border-4 border-emerald-800/50 tracking-widest">칠 판</div>
+                    교 탁
+                </div>
+
+                <!-- Desks Container -->
+                <div id="classroom-grid" class="flex gap-8 justify-center w-full">
+                    <!-- Javascript will populate this -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Custom Modal for Alerts -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 transition-opacity backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform scale-95 transition-transform" id="modal-content">
+            <h3 class="text-lg font-black text-gray-900 mb-3 flex items-center gap-2">
+                <span>🔔</span> 알림
+            </h3>
+            <p id="modal-message" class="text-gray-600 mb-6 text-sm leading-relaxed"></p>
+            <div class="flex justify-end">
+                <button onclick="closeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-bold transition-colors shadow-md">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lottery Modal -->
+    <div id="lottery-modal" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center z-50 backdrop-blur-md transition-opacity">
+        <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl flex flex-col items-center text-center transform scale-95 transition-transform border-4 border-pink-100" id="lottery-content">
+            <h3 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-violet-500 mb-6">🎁 오늘의 주인공은?</h3>
+            <div id="lottery-result" class="w-full h-32 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center text-3xl font-bold text-gray-800 mb-8 shadow-inner overflow-hidden relative">
+                <span id="lottery-name" class="z-10">준비...</span>
+            </div>
+            <button onclick="closeLottery()" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-lg">확인 완료</button>
+        </div>
+    </div>
+
+    <!-- Secret Settings Modal -->
+    <div id="secret-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-[60] backdrop-blur-sm transition-opacity">
+        <div class="bg-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl transform scale-95 transition-transform border border-slate-600 text-slate-200" id="secret-content">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-600 pb-2">
+                <h3 class="text-lg font-black text-emerald-400 flex items-center gap-2">
+                    <span>🕵️</span> 비밀 조건 설정 <span class="text-xs font-normal text-slate-400 ml-2">(화면에 표시되지 않습니다)</span>
+                </h3>
+                <button onclick="closeSecretModal()" class="text-slate-400 hover:text-white font-bold">&times; 닫기</button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Secret Fixed Seats -->
+                <section class="bg-slate-700/50 p-3 rounded-lg border border-slate-600">
+                    <h2 class="text-sm font-bold text-slate-300 mb-2">비밀 고정석</h2>
+                    <div class="flex gap-2 mb-2">
+                        <select id="secret-fixed-student" class="flex-1 border border-slate-600 bg-slate-800 rounded-md p-1.5 text-sm outline-none"></select>
+                        <select id="secret-fixed-seat" class="flex-1 border border-slate-600 bg-slate-800 rounded-md p-1.5 text-sm outline-none"></select>
+                        <button onclick="addSecretFixed()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition">추가</button>
+                    </div>
+                    <ul id="secret-fixed-list" class="text-sm text-slate-300 space-y-1 empty:hidden"></ul>
+                </section>
+
+                <!-- Secret Separation -->
+                <section class="bg-slate-700/50 p-3 rounded-lg border border-slate-600">
+                    <h2 class="text-sm font-bold text-slate-300 mb-2">비밀 분리 조건</h2>
+                    <div class="flex gap-2 mb-2">
+                        <select id="secret-sep-1" class="flex-1 border border-slate-600 bg-slate-800 rounded-md p-1.5 text-sm outline-none"></select>
+                        <select id="secret-sep-2" class="flex-1 border border-slate-600 bg-slate-800 rounded-md p-1.5 text-sm outline-none"></select>
+                        <button onclick="addSecretSep()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition">추가</button>
+                    </div>
+                    <ul id="secret-sep-list" class="text-sm text-slate-300 space-y-1 empty:hidden"></ul>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data Definitions ---
+        // 23번 이지아 학생 복귀 (총 25명)
+        const DEFAULT_STUDENTS = [
+            "1번 강지수", "2번 김가온", "3번 김나린", "4번 김담희", "5번 김수빈", 
+            "6번 김예원", "7번 김정현", "8번 김주은", "9번 김지율", "10번 김지은", 
+            "11번 박가은", "12번 박소민", "13번 박하은", "14번 오채원", "15번 윤지민", 
+            "16번 윤지수", "17번 윤지예", "18번 이승지", "19번 이어진", "20번 이주연", 
+            "23번 이지아", "24번 이현지", "25번 정해원", "26번 주시영", "27번 추수빈"
+        ];
+        
+        let currentArrangement = {}; // { seatId: studentName }
+        let fixedSeatsList = []; // [ { student, seatId } ]
+        let separationRulesList = []; // [ { s1, s2 } ]
+        let hiddenFixed = []; // 비밀 고정석
+        let hiddenSep = []; // 비밀 분리 조건
+        let draggedSeatId = null;
+
+        // 교실 레이아웃 설정 변수 (가운데 줄 추가 옵션 포함)
+        let layoutConfig = { blocks: 3, rows: 4, cols: 2, middleExtraRow: true };
+        let seats = [];
+        
+        function buildSeats() {
+            seats = [];
+            for (let b = 1; b <= layoutConfig.blocks; b++) {
+                let rCount = layoutConfig.rows;
+                // 홀수 분단일 때 가운데 분단에 1줄 추가
+                if (layoutConfig.middleExtraRow && layoutConfig.blocks % 2 === 1 && b === Math.ceil(layoutConfig.blocks / 2)) {
+                    rCount++;
+                }
+                for (let r = 0; r < rCount; r++) {
+                    for (let c = 0; c < layoutConfig.cols; c++) {
+                        // 2분단 맨 뒷줄 좌측 자리 비활성화 (25명 인원 맞춤)
+                        if (b === 2 && r === rCount - 1 && c === 0) {
+                            continue;
+                        }
+                        
+                        let globalC = (b - 1) * layoutConfig.cols + c;
+                        let direction = c === 0 ? "좌" : "우";
+                        seats.push({ 
+                            id: `B${b}_R${r}_C${c}`, 
+                            r: r, 
+                            c: globalC, 
+                            label: `${b}분단 ${r + 1}줄 ${direction}`, 
+                            block: b 
+                        });
+                    }
+                }
+            }
+        }
+
+        // --- Initialization ---
+        window.onload = () => {
+            buildSeats();
+            document.getElementById('student-list').value = DEFAULT_STUDENTS.join(', ');
+            updateSelectOptions();
+            initEmptyClassroom();
+        };
+
+        function applyLayoutConfig() {
+            const blockVal = parseInt(document.getElementById('config-blocks').value);
+            const rowVal = parseInt(document.getElementById('config-rows').value);
+            const middleExtra = document.getElementById('config-middle-extra').checked;
+            
+            layoutConfig.blocks = blockVal;
+            layoutConfig.rows = rowVal;
+            layoutConfig.middleExtraRow = middleExtra;
+            
+            buildSeats();
+            
+            // 레이아웃 변경 시 조건 초기화
+            fixedSeatsList = [];
+            separationRulesList = [];
+            hiddenFixed = [];
+            hiddenSep = [];
+            
+            updateFixedListUI();
+            updateSepListUI();
+            
+            // 모든 select 박스의 option 리렌더링 강제화 (자리 목록 갱신을 위해)
+            const seatSelects = ['fixed-seat', 'secret-fixed-seat'];
+            seatSelects.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.innerHTML = ''; 
+            });
+
+            updateSelectOptions();
+            initEmptyClassroom();
+            showModal(`교실이 ${blockVal}분단 ${rowVal}줄 구조로 변경되었습니다!\n기존 조건은 모두 초기화되었습니다.`);
+        }
+
+        // --- UI Updates ---
+        function getStudentArray() {
+            const val = document.getElementById('student-list').value;
+            return val.split(/[\n,]+/).map(s => s.trim()).filter(s => s.length > 0);
+        }
+
+        function updateSelectOptions() {
+            const students = getStudentArray();
+            const maxSeats = seats.length;
+            
+            // 학생 수 업데이트 UI
+            const countEl = document.getElementById('student-count');
+            const warningEl = document.getElementById('count-warning');
+            countEl.innerText = `현재 ${students.length}명 / 최대 ${maxSeats}석`;
+            
+            if(students.length > maxSeats || students.length === 0) {
+                countEl.className = "text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md";
+                warningEl.innerText = `* 최대 ${maxSeats}명까지 배치 가능합니다.`;
+                warningEl.classList.remove('hidden');
+            } else {
+                countEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md";
+                warningEl.classList.add('hidden');
+            }
+
+            const studentSelects = ['fixed-student', 'sep-student-1', 'sep-student-2', 'secret-fixed-student', 'secret-sep-1', 'secret-sep-2'];
+            
+            studentSelects.forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                const currentVal = el.value;
+                el.innerHTML = '<option value="">- 학생 선택 -</option>' + 
+                    students.map(s => `<option value="${s}">${s}</option>`).join('');
+                if(students.includes(currentVal)) el.value = currentVal;
+            });
+
+            const seatSelects = ['fixed-seat', 'secret-fixed-seat'];
+            seatSelects.forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                if(el.options.length <= 1) {
+                    el.innerHTML = '<option value="">- 자리 선택 -</option>' + 
+                        seats.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+                }
+            });
+        }
+
+        function initEmptyClassroom() {
+            currentArrangement = {};
+            seats.forEach(s => currentArrangement[s.id] = null);
+            renderClassroom();
+        }
+
+        // --- Rules Management ---
+        function addFixedSeat() {
+            const student = document.getElementById('fixed-student').value;
+            const seatId = document.getElementById('fixed-seat').value;
+            
+            if(!student || !seatId) return showModal("학생과 자리를 모두 선택해주세요.");
+            if(fixedSeatsList.some(f => f.student === student)) return showModal("이미 고정석이 설정된 학생입니다.");
+            if(fixedSeatsList.some(f => f.seatId === seatId)) return showModal("이미 다른 학생이 배정된 자리입니다.");
+
+            fixedSeatsList.push({ student, seatId });
+            updateFixedListUI();
+            
+            // 선택 초기화
+            document.getElementById('fixed-student').value = "";
+            document.getElementById('fixed-seat').value = "";
+        }
+
+        function removeFixedSeat(idx) {
+            fixedSeatsList.splice(idx, 1);
+            updateFixedListUI();
+        }
+
+        function updateFixedListUI() {
+            const ul = document.getElementById('fixed-list');
+            ul.innerHTML = fixedSeatsList.map((f, i) => {
+                const seat = seats.find(s => s.id === f.seatId);
+                return `<li class="flex justify-between items-center py-1 border-b border-gray-200 last:border-0">
+                    <span><strong class="text-blue-600">${f.student}</strong> ➔ ${seat.label}</span>
+                    <button onclick="removeFixedSeat(${i})" class="text-red-400 hover:text-red-600 text-lg font-bold w-6 h-6 flex items-center justify-center rounded hover:bg-red-50">&times;</button>
+                </li>`;
+            }).join('');
+        }
+
+        function addSeparationRule() {
+            const s1 = document.getElementById('sep-student-1').value;
+            const s2 = document.getElementById('sep-student-2').value;
+            
+            if(!s1 || !s2) return showModal("분리할 두 학생을 모두 선택해주세요.");
+            if(s1 === s2) return showModal("서로 다른 학생을 선택해주세요.");
+            
+            const exists = separationRulesList.some(r => (r.s1 === s1 && r.s2 === s2) || (r.s1 === s2 && r.s2 === s1));
+            if(exists) return showModal("이미 등록된 조건입니다.");
+
+            separationRulesList.push({ s1, s2 });
+            updateSepListUI();
+            
+            // 선택 초기화
+            document.getElementById('sep-student-1').value = "";
+            document.getElementById('sep-student-2').value = "";
+        }
+
+        function removeSeparationRule(idx) {
+            separationRulesList.splice(idx, 1);
+            updateSepListUI();
+        }
+
+        function updateSepListUI() {
+            const ul = document.getElementById('sep-list');
+            ul.innerHTML = separationRulesList.map((r, i) => 
+                `<li class="flex justify-between items-center py-1 border-b border-gray-200 last:border-0">
+                    <span>${r.s1} <span class="text-gray-400 text-xs mx-1">↔</span> ${r.s2}</span>
+                    <button onclick="removeSeparationRule(${i})" class="text-red-400 hover:text-red-600 text-lg font-bold w-6 h-6 flex items-center justify-center rounded hover:bg-red-50">&times;</button>
+                </li>`
+            ).join('');
+        }
+
+        // --- Secret Rules Management ---
+        function openSecretModal() {
+            const modal = document.getElementById('secret-modal');
+            const content = document.getElementById('secret-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => content.classList.remove('scale-95'), 10);
+            updateSelectOptions(); // 옵션 최신화
+        }
+
+        function closeSecretModal() {
+            const modal = document.getElementById('secret-modal');
+            const content = document.getElementById('secret-content');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        function addSecretFixed() {
+            const student = document.getElementById('secret-fixed-student').value;
+            const seatId = document.getElementById('secret-fixed-seat').value;
+            if(!student || !seatId) return;
+            hiddenFixed.push({ student, seatId });
+            updateSecretUI();
+            document.getElementById('secret-fixed-student').value = "";
+            document.getElementById('secret-fixed-seat').value = "";
+        }
+
+        function addSecretSep() {
+            const s1 = document.getElementById('secret-sep-1').value;
+            const s2 = document.getElementById('secret-sep-2').value;
+            if(!s1 || !s2 || s1 === s2) return;
+            hiddenSep.push({ s1, s2 });
+            updateSecretUI();
+            document.getElementById('secret-sep-1').value = "";
+            document.getElementById('secret-sep-2').value = "";
+        }
+
+        function updateSecretUI() {
+            document.getElementById('secret-fixed-list').innerHTML = hiddenFixed.map((f, i) => {
+                const seat = seats.find(s => s.id === f.seatId);
+                return `<li class="flex justify-between items-center py-1 border-b border-slate-600 last:border-0">
+                    <span><strong class="text-emerald-400">${f.student}</strong> ➔ ${seat.label}</span>
+                    <button onclick="hiddenFixed.splice(${i}, 1); updateSecretUI();" class="text-red-400 hover:text-red-300 w-5 h-5">&times;</button>
+                </li>`;
+            }).join('');
+
+            document.getElementById('secret-sep-list').innerHTML = hiddenSep.map((r, i) => 
+                `<li class="flex justify-between items-center py-1 border-b border-slate-600 last:border-0">
+                    <span>${r.s1} ↔ ${r.s2}</span>
+                    <button onclick="hiddenSep.splice(${i}, 1); updateSecretUI();" class="text-red-400 hover:text-red-300 w-5 h-5">&times;</button>
+                </li>`
+            ).join('');
+        }
+
+        // --- Core Logic: Random Generation ---
+        function generateArrangement() {
+            const students = getStudentArray();
+            const maxSeats = seats.length;
+            if(students.length > maxSeats || students.length === 0) {
+                return showModal(`현재 설정된 책상 개수(${maxSeats}개)보다 입력된 학생 수(${students.length}명)가 많거나 없습니다.\n명단을 확인해주세요.`);
+            }
+
+            const maxAttempts = 2000;
+            let attempt = 0;
+
+            while(attempt < maxAttempts) {
+                let tempState = {};
+                let availableStudents = [...students];
+
+                // 1. 고정석 우선 배치 (공개 + 비밀 고정석)
+                const allFixed = [...fixedSeatsList, ...hiddenFixed];
+                let fixedValid = true;
+                for(let fix of allFixed) {
+                    tempState[fix.seatId] = fix.student;
+                    const idx = availableStudents.indexOf(fix.student);
+                    if(idx > -1) {
+                        availableStudents.splice(idx, 1);
+                    } else {
+                        fixedValid = false;
+                        break;
+                    }
+                }
+
+                if(!fixedValid) {
+                    showModal("고정석으로 지정된 학생의 이름이 현재 학생 명단에 없습니다.\n(비밀 고정석 목록도 확인해주세요)");
+                    return;
+                }
+
+                // 2. 남은 학생 랜덤 셔플
+                availableStudents.sort(() => Math.random() - 0.5);
+
+                // 3. 빈 자리에 배정
+                for(let seat of seats) {
+                    if(!tempState[seat.id]) {
+                        tempState[seat.id] = availableStudents.pop() || null;
+                    }
+                }
+
+                // 4. 분리 조건 검사 (공개 + 비밀 분리 조건)
+                const allSep = [...separationRulesList, ...hiddenSep];
+                let isValid = true;
+                for(let rule of allSep) {
+                    let s1SeatId = Object.keys(tempState).find(k => tempState[k] === rule.s1);
+                    let s2SeatId = Object.keys(tempState).find(k => tempState[k] === rule.s2);
+
+                    if(s1SeatId && s2SeatId) {
+                        let s1Seat = seats.find(s => s.id === s1SeatId);
+                        let s2Seat = seats.find(s => s.id === s2SeatId);
+                        
+                        // 인접 판별: (같은 분단 내에서 가로 차이 + 세로 차이가 1인 경우)
+                        const isSameBlock = s1Seat.block === s2Seat.block;
+                        const distance = Math.abs(s1Seat.r - s2Seat.r) + Math.abs(s1Seat.c - s2Seat.c);
+                        
+                        if(isSameBlock && distance === 1) {
+                            isValid = false;
+                            break;
+                        }
+                        // 분단 간 인접 판별 (통로를 사이에 두고 같은 줄인 경우도 분리)
+                        if(!isSameBlock && s1Seat.r === s2Seat.r && Math.abs(s1Seat.c - s2Seat.c) === 1) {
+                            isValid = false;
+                            break;
+                        }
+                    }
+                }
+
+                if(isValid) {
+                    currentArrangement = tempState;
+                    renderClassroom();
+                    return;
+                }
+                attempt++;
+            }
+
+            showModal("조건(고정석, 분리)을 모두 만족하는 배치를 찾을 수 없습니다.\n조건이 너무 빡빡할 수 있으니 일부 조건을 해제해 주세요.");
+        }
+
+        // --- Core Logic: Sequential Generation (번호순) ---
+        function generateSequentialArrangement() {
+            const students = getStudentArray();
+            const maxSeats = seats.length;
+            if(students.length > maxSeats || students.length === 0) {
+                return showModal(`현재 설정된 책상 개수(${maxSeats}개)보다 입력된 학생 수(${students.length}명)가 많거나 없습니다.\n명단을 확인해주세요.`);
+            }
+
+            // 앞줄(교탁 앞) 맨 왼쪽부터 오른쪽으로 차례대로 정렬
+            const sortedSeats = [...seats].sort((a, b) => {
+                if (a.r !== b.r) return a.r - b.r;
+                return a.c - b.c;
+            });
+
+            // 입력된 학생 이름에서 번호를 추출하여 자동으로 오름차순 정렬
+            const sortedStudents = [...students].sort((a, b) => {
+                const numA = parseInt(a.match(/\d+/)?.[0] || "999");
+                const numB = parseInt(b.match(/\d+/)?.[0] || "999");
+                return numA - numB;
+            });
+
+            let tempState = {};
+            sortedSeats.forEach((seat, index) => {
+                tempState[seat.id] = sortedStudents[index] || null;
+            });
+
+            currentArrangement = tempState;
+            renderClassroom();
+        }
+
+        // --- Render UI ---
+        function renderClassroom() {
+            const container = document.getElementById('classroom-grid');
+            container.innerHTML = '';
+
+            // 분단별 렌더링 함수
+            const renderBlock = (blockNum, rows) => {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'grid grid-cols-2 gap-4 h-fit bg-white/70 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-slate-200/80';
+                
+                for(let r=0; r<rows; r++) {
+                    for(let c=0; c<2; c++) {
+                        // 전체 열(c) 기준 인덱스 계산
+                        let realC = (blockNum - 1) * 2 + c;
+                        let seat = seats.find(s => s.r === r && s.c === realC);
+                        
+                        const deskDiv = document.createElement('div');
+                        
+                        if(seat) {
+                            const studentName = currentArrangement[seat.id];
+                            const isFixed = fixedSeatsList.some(f => f.seatId === seat.id);
+
+                            deskDiv.className = `desk w-28 h-[4.5rem] flex flex-col items-center justify-center rounded-2xl text-sm font-bold cursor-move select-none transition-all duration-200
+                                ${studentName ? 'bg-gradient-to-b from-white to-amber-50/50 border-2 border-amber-200 shadow-[0_5px_0_0_#fcd34d] text-gray-800' : 'bg-gray-50 border-2 border-gray-200 shadow-[0_5px_0_0_#e5e7eb] text-gray-400'}
+                                ${isFixed ? 'ring-4 ring-pink-400 border-transparent shadow-[0_5px_0_0_#f472b6]' : 'hover:-translate-y-1.5 hover:shadow-[0_8px_0_0_#fbd38d] hover:border-amber-300'} active:translate-y-1 active:shadow-none relative`;
+                            deskDiv.draggable = true;
+                            deskDiv.dataset.id = seat.id;
+                            
+                            // 내부 HTML (고정석 아이콘 포함)
+                            if(studentName) {
+                                deskDiv.innerHTML = `
+                                    <span class="text-[10px] text-gray-400 font-normal absolute top-1.5 left-2">${seat.label.split(' ')[1]}</span>
+                                    <span class="text-base mt-2">${studentName}</span>
+                                    ${isFixed ? '<span class="absolute top-1.5 right-1.5 text-pink-500 text-xs font-black">🔒</span>' : ''}
+                                `;
+                            } else {
+                                deskDiv.innerHTML = `<span class="text-xs font-medium">빈 자리</span>`;
+                            }
+                            
+                            // Drag Events (호환성 개선)
+                            deskDiv.addEventListener('dragstart', handleDragStart);
+                            deskDiv.addEventListener('dragover', handleDragOver);
+                            deskDiv.addEventListener('dragleave', handleDragLeave);
+                            deskDiv.addEventListener('drop', handleDrop);
+                        } else {
+                            // 공백 방어용
+                            deskDiv.className = 'w-28 h-[4.5rem] bg-transparent';
+                        }
+                        blockDiv.appendChild(deskDiv);
+                    }
+                }
+                return blockDiv;
+            };
+
+            for (let b = 1; b <= layoutConfig.blocks; b++) {
+                let rCount = layoutConfig.rows;
+                if (layoutConfig.middleExtraRow && layoutConfig.blocks % 2 === 1 && b === Math.ceil(layoutConfig.blocks / 2)) {
+                    rCount++;
+                }
+                container.appendChild(renderBlock(b, rCount));
+            }
+        }
+
+        // --- Drag & Drop Handlers (Manual Swap) ---
+        function handleDragStart(e) {
+            draggedSeatId = this.dataset.id;
+            e.dataTransfer.effectAllowed = 'move';
+            // 크로스 브라우징을 위한 필수 데이터 설정
+            e.dataTransfer.setData('text/plain', this.dataset.id); 
+            this.classList.add('opacity-40', 'scale-95');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); // 드롭 허용
+            e.dataTransfer.dropEffect = 'move';
+            if(this.dataset.id !== draggedSeatId) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            // 모든 책상의 시각적 효과 복구
+            document.querySelectorAll('.desk').forEach(el => {
+                el.classList.remove('opacity-40', 'scale-95', 'drag-over');
+            });
+
+            // e.currentTarget 대신 this를 사용하거나 이벤트를 바인딩한 요소를 찾음
+            const targetElement = e.target.closest('.desk');
+            if(!targetElement) return;
+
+            const targetSeatId = targetElement.dataset.id;
+            
+            if(draggedSeatId && targetSeatId && draggedSeatId !== targetSeatId) {
+                // 자리 교체
+                const temp = currentArrangement[draggedSeatId];
+                currentArrangement[draggedSeatId] = currentArrangement[targetSeatId];
+                currentArrangement[targetSeatId] = temp;
+                renderClassroom(); // UI 재렌더링
+            }
+            draggedSeatId = null;
+        }
+
+        // --- Utility: Copy to Clipboard ---
+        function copyToClipboard() {
+            if(Object.values(currentArrangement).every(x => x === null)) {
+                return showModal("아직 배치된 자리가 없습니다. 배치를 먼저 실행해주세요.");
+            }
+
+            let text = "===========================================\n";
+            text += "                     [교 탁]\n";
+            text += "===========================================\n\n";
+
+            let maxRowsForCopy = layoutConfig.rows;
+            if (layoutConfig.middleExtraRow) maxRowsForCopy++;
+
+            for(let r=0; r<maxRowsForCopy; r++) {
+                let rowStr = "";
+                for(let c=0; c<layoutConfig.blocks * layoutConfig.cols; c++) {
+                    let seat = seats.find(s => s.r === r && s.c === c);
+                    if(seat) {
+                        let student = currentArrangement[seat.id] || "빈자리";
+                        rowStr += `[${student}]`.padEnd(10, ' ');
+                    } else {
+                        rowStr += "          "; 
+                    }
+                    if(c % 2 === 1 && c < (layoutConfig.blocks * layoutConfig.cols) - 1) {
+                        rowStr += "   "; // 분단 사이 복도
+                    }
+                }
+                text += rowStr + "\n\n";
+            }
+
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showModal("📋 클립보드에 텍스트로 복사되었습니다!\n엑셀이나 한글 문서에 붙여넣기(Ctrl+V) 하시면 됩니다.");
+            } catch (err) {
+                showModal("복사에 실패했습니다. 브라우저 설정을 확인해주세요.");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // --- Custom Modal (Alert 대체) ---
+        function showModal(message) {
+            document.getElementById('modal-message').innerText = message;
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => content.classList.remove('scale-95'), 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        // --- Lottery Logic ---
+        let lotteryInterval;
+        function startLottery() {
+            const students = getStudentArray();
+            if(students.length === 0) return showModal("추첨할 학생 명단이 없습니다.");
+            
+            const modal = document.getElementById('lottery-modal');
+            const content = document.getElementById('lottery-content');
+            const nameDisplay = document.getElementById('lottery-name');
+            const resultBox = document.getElementById('lottery-result');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => content.classList.remove('scale-95'), 10);
+            
+            // 초기화
+            resultBox.className = "w-full h-32 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center text-3xl font-bold text-gray-400 mb-8 shadow-inner overflow-hidden transition-all duration-300";
+            nameDisplay.innerText = "두구두구...";
+            nameDisplay.className = "z-10 transition-transform duration-300";
+            
+            let count = 0;
+            const duration = 2000; // 2.0초간 진행
+            const speed = 70; // 0.07초마다 이름 변경
+            const totalTicks = duration / speed;
+            
+            if(lotteryInterval) clearInterval(lotteryInterval);
+            
+            lotteryInterval = setInterval(() => {
+                const randomIdx = Math.floor(Math.random() * students.length);
+                nameDisplay.innerText = students[randomIdx];
+                nameDisplay.classList.add('text-gray-800');
+                count++;
+                
+                if(count >= totalTicks) {
+                    clearInterval(lotteryInterval);
+                    const finalWinner = students[Math.floor(Math.random() * students.length)];
+                    nameDisplay.innerText = "🎉 " + finalWinner + " 🎉";
+                    nameDisplay.className = "z-10 text-pink-600 scale-125 transition-transform duration-500 font-black";
+                    resultBox.className = "w-full h-32 bg-pink-50 rounded-2xl border-4 border-pink-400 flex items-center justify-center text-3xl font-bold mb-8 shadow-inner overflow-hidden transition-all duration-300";
+                }
+            }, speed);
+        }
+
+        function closeLottery() {
+            const modal = document.getElementById('lottery-modal');
+            const content = document.getElementById('lottery-content');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+    </script>
+</body>
+</html>
